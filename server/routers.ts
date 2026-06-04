@@ -5,6 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { createProposal, deleteProposal, getProposalById, getProposalsByUserId, updateProposal } from "./db";
 import { invokeLLM } from "./_core/llm";
+import { exportProposalToPDF, exportProposalToText } from "./proposal-export";
 
 export const appRouter = router({
   system: systemRouter,
@@ -131,6 +132,40 @@ Gere uma proposta profissional, elegante e persuasiva em Markdown.`;
         }
 
         return { proposalContent: content };
+      }),
+
+    exportPDF: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const proposal = await getProposalById(input.id, ctx.user.id);
+        if (!proposal) {
+          throw new Error("Proposal not found");
+        }
+
+        const { url, key } = await exportProposalToPDF(proposal);
+        return {
+          success: true,
+          url,
+          key,
+          filename: `proposta_${proposal.clientName.replace(/\s+/g, "_")}.pdf`,
+        };
+      }),
+
+    exportText: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const proposal = await getProposalById(input.id, ctx.user.id);
+        if (!proposal) {
+          throw new Error("Proposal not found");
+        }
+
+        const { url, key } = await exportProposalToText(proposal);
+        return {
+          success: true,
+          url,
+          key,
+          filename: `proposta_${proposal.clientName.replace(/\s+/g, "_")}.txt`,
+        };
       }),
   }),
 });

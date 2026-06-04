@@ -33,9 +33,9 @@
 - [ ] Implementar soft delete ou status de arquivo
 
 ## Exportação
-- [ ] Implementar exportação em PDF usando weasyprint/fpdf2
-- [ ] Implementar exportação em texto formatado
-- [ ] Adicionar botões de download na interface
+- [x] Implementar exportação em PDF com download funcional
+- [x] Implementar exportação em texto formatado
+- [x] Adicionar botões de download na interface
 
 ## Testes
 - [x] Escrever testes vitest para procedimentos tRPC

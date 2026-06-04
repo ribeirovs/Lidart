@@ -39,8 +39,22 @@ export default function ProposalsList() {
     }
   };
 
-  const handleDownloadPDF = (proposalId: number) => {
-    toast.info("Funcionalidade de download em desenvolvimento");
+  const downloadPDFMutation = trpc.proposals.exportPDF.useMutation();
+
+  const handleDownloadPDF = async (proposalId: number) => {
+    try {
+      const result = await downloadPDFMutation.mutateAsync({ id: proposalId });
+      const link = document.createElement("a");
+      link.href = result.url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("PDF baixado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao baixar PDF");
+      console.error(error);
+    }
   };
 
   if (isLoading) {

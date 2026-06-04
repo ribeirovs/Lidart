@@ -4,7 +4,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { ArrowLeft, Download, Edit2, Save, X } from "lucide-react";
+import { ArrowLeft, Download, Edit2, Save, X, FileText } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
@@ -40,8 +40,41 @@ export default function ProposalDetail() {
     }
   };
 
-  const handleDownloadPDF = () => {
-    toast.info("Funcionalidade de download em desenvolvimento");
+  const downloadPDFMutation = trpc.proposals.exportPDF.useMutation();
+  const downloadTextMutation = trpc.proposals.exportText.useMutation();
+
+  const handleDownloadPDF = async () => {
+    if (!proposal) return;
+    try {
+      const result = await downloadPDFMutation.mutateAsync({ id: proposal.id });
+      const link = document.createElement("a");
+      link.href = result.url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("PDF baixado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao baixar PDF");
+      console.error(error);
+    }
+  };
+
+  const handleDownloadText = async () => {
+    if (!proposal) return;
+    try {
+      const result = await downloadTextMutation.mutateAsync({ id: proposal.id });
+      const link = document.createElement("a");
+      link.href = result.url;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("Arquivo de texto baixado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao baixar arquivo");
+      console.error(error);
+    }
   };
 
   if (isLoading) {
@@ -108,6 +141,15 @@ export default function ProposalDetail() {
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Baixar PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadText}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Baixar Texto
                 </Button>
                 <Button
                   variant="outline"
