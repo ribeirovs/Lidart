@@ -25,4 +25,24 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * Proposals table for storing commercial proposals
+ */
+export const proposals = mysqlTable("proposals", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  clientName: varchar("clientName", { length: 255 }).notNull(),
+  clientCompany: varchar("clientCompany", { length: 255 }).notNull(),
+  clientContact: varchar("clientContact", { length: 255 }),
+  projectScope: text("projectScope").notNull(),
+  values: varchar("values", { length: 255 }).notNull(),
+  deadline: varchar("deadline", { length: 255 }),
+  commercialTerms: text("commercialTerms"),
+  proposalContent: text("proposalContent").notNull(),
+  status: mysqlEnum("status", ["draft", "sent", "accepted", "rejected", "archived"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Proposal = typeof proposals.$inferSelect;
+export type InsertProposal = typeof proposals.$inferInsert;

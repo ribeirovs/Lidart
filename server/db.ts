@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, InsertProposal, proposals, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,52 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function createProposal(data: InsertProposal) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(proposals).values(data);
+  return result;
+}
+
+export async function getProposalsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db
+    .select()
+    .from(proposals)
+    .where(eq(proposals.userId, userId))
+    .orderBy(desc(proposals.createdAt));
+  return result;
+}
+
+export async function getProposalById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db
+    .select()
+    .from(proposals)
+    .where(and(eq(proposals.id, id), eq(proposals.userId, userId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateProposal(
+  id: number,
+  userId: number,
+  data: Partial<Omit<InsertProposal, 'userId'>>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(proposals)
+    .set(data)
+    .where(and(eq(proposals.id, id), eq(proposals.userId, userId)));
+}
+
+export async function deleteProposal(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .delete(proposals)
+    .where(and(eq(proposals.id, id), eq(proposals.userId, userId)));
+}

@@ -1,7 +1,15 @@
-/**
- * Unified type exports
- * Import shared types from this single entry point.
- */
-
-export type * from "../drizzle/schema";
-export * from "./_core/errors";
+export type Proposal = {
+  id: number;
+  userId: number;
+  clientName: string;
+  clientCompany: string;
+  clientContact?: string | null;
+  projectScope: string;
+  values: string;
+  deadline?: string | null;
+  commercialTerms?: string | null;
+  proposalContent: string;
+  status: "draft" | "sent" | "accepted" | "rejected" | "archived";
+  createdAt: Date;
+  updatedAt: Date;
+};
