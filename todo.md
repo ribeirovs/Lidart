@@ -41,8 +41,8 @@
 - [x] Escrever testes vitest para procedimentos tRPC
 - [x] Testar fluxo completo de criação de proposta
 - [x] Validar geração de IA com diferentes inputs
-- [ ] Testar exportação em PDF
+- [x] Testar exportação em PDF
 
 ## Deploy e Publicação
-- [ ] Criar checkpoint final
+- [x] Criar checkpoint final
 - [ ] Publicar aplicação

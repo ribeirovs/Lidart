@@ -93,7 +93,14 @@ export async function createProposal(data: InsertProposal) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(proposals).values(data);
-  return result;
+  // Get the inserted proposal
+  const inserted = await db
+    .select()
+    .from(proposals)
+    .where(eq(proposals.userId, data.userId))
+    .orderBy(desc(proposals.createdAt))
+    .limit(1);
+  return inserted.length > 0 ? inserted[0] : null;
 }
 
 export async function getProposalsByUserId(userId: number) {
