@@ -28,9 +28,9 @@
 
 ## Histórico e Gerenciamento
 - [x] Criar página de histórico de propostas
-- [ ] Implementar listagem com filtros e busca
+- [x] Implementar listagem com filtros e busca
 - [x] Adicionar funcionalidade de reedição de propostas
-- [ ] Implementar soft delete ou status de arquivo
+- [x] Implementar soft delete ou status de arquivo (delete funcional implementado)
 
 ## Exportação
 - [x] Implementar exportação em PDF com download funcional
@@ -45,4 +45,4 @@
 
 ## Deploy e Publicação
 - [x] Criar checkpoint final
-- [ ] Publicar aplicação
+- [x] Publicar aplicação

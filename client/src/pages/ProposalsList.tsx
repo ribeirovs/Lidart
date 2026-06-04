@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
-import { ArrowLeft, Plus, Trash2, Eye, Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Plus, Trash2, Eye, Download, Search, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -22,8 +23,22 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 export default function ProposalsList() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   const { data: proposals, isLoading, refetch } = trpc.proposals.list.useQuery();
+
+  // Filter proposals based on search and status
+  const filteredProposals = proposals?.filter((proposal) => {
+    const matchesSearch =
+      proposal.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      proposal.clientCompany.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      proposal.projectScope.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = !statusFilter || proposal.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  }) || [];
   const deleteMutation = trpc.proposals.delete.useMutation();
 
   const handleDelete = async (id: number) => {
@@ -96,6 +111,29 @@ export default function ProposalsList() {
 
       {/* Main Content */}
       <main className="container max-w-7xl mx-auto px-4 py-12">
+        {/* Search and Filter */}
+        {proposals && proposals.length > 0 && (
+          <div className="mb-8 space-y-4">
+            <div className="flex items-center gap-2 bg-white/50 backdrop-blur rounded-lg border border-border/50 px-4 py-2">
+              <Search className="w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por cliente, empresa ou escopo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border-0 bg-transparent focus:outline-none focus:ring-0 text-sm"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {!proposals || proposals.length === 0 ? (
           <Card className="border-2 border-dashed border-border/50 bg-muted/20 backdrop-blur p-12 text-center space-y-4">
             <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
@@ -115,9 +153,13 @@ export default function ProposalsList() {
               Criar Primeira Proposta
             </Button>
           </Card>
+        ) : filteredProposals.length === 0 ? (
+          <Card className="border-2 border-dashed border-border/50 bg-muted/20 backdrop-blur p-12 text-center space-y-4">
+            <p className="text-muted-foreground">Nenhuma proposta encontrada com os filtros selecionados</p>
+          </Card>
         ) : (
           <div className="space-y-4">
-            {proposals.map((proposal) => (
+            {filteredProposals.map((proposal) => (
               <Card
                 key={proposal.id}
                 className="border border-border/50 bg-white/50 backdrop-blur p-6 hover:border-primary/30 transition-colors cursor-pointer"
