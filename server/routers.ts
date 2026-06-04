@@ -168,6 +168,74 @@ Gere uma proposta profissional, elegante e persuasiva em Markdown.`;
         };
       }),
   }),
+
+  resources: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const { getResourcesByUserId } = await import("./db");
+      return getResourcesByUserId(ctx.user.id);
+    }),
+
+    upload: protectedProcedure
+      .input(
+        z.object({
+          name: z.string().min(1),
+          type: z.enum(["inventory", "pricing", "product_content", "market_data"]),
+          description: z.string().optional(),
+          fileUrl: z.string().min(1),
+          fileKey: z.string().min(1),
+          mimeType: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { createResource } = await import("./db");
+        return createResource({
+          userId: ctx.user.id,
+          ...input,
+        });
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { deleteResource } = await import("./db");
+        return deleteResource(input.id);
+      }),
+  }),
+
+  briefings: router({
+    create: protectedProcedure
+      .input(
+        z.object({
+          clientName: z.string().min(1),
+          segment: z.string().min(1),
+          cities: z.string().min(1),
+          campaignPeriod: z.string().min(1),
+          budget: z.string().min(1),
+          objective: z.string().min(1),
+          contactName: z.string().min(1),
+          contactEmail: z.string().email(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { createBriefing } = await import("./db");
+        return createBriefing({
+          userId: ctx.user.id,
+          ...input,
+        });
+      }),
+
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const { getBriefingsByUserId } = await import("./db");
+      return getBriefingsByUserId(ctx.user.id);
+    }),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const { getBriefingById } = await import("./db");
+        return getBriefingById(input.id);
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

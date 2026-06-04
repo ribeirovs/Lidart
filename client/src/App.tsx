@@ -8,6 +8,8 @@ import Home from "./pages/Home";
 import CreateProposal from "./pages/CreateProposal";
 import ProposalsList from "./pages/ProposalsList";
 import ProposalDetail from "./pages/ProposalDetail";
+import Resources from "./pages/Resources";
+import Briefing from "./pages/Briefing";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -17,6 +19,8 @@ function Router() {
       <Route path={"/create"} component={CreateProposal} />
       <Route path={"/proposals"} component={ProposalsList} />
       <Route path={"/proposal/:id"} component={ProposalDetail} />
+      <Route path={"/resources"} component={Resources} />
+      <Route path={"/briefing"} component={Briefing} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

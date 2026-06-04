@@ -46,3 +46,61 @@ export const proposals = mysqlTable("proposals", {
 
 export type Proposal = typeof proposals.$inferSelect;
 export type InsertProposal = typeof proposals.$inferInsert;
+
+/**
+ * Resources table for storing uploaded files (inventory, pricing, product content)
+ */
+export const resources = mysqlTable("resources", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: mysqlEnum("type", ["inventory", "pricing", "product_content", "market_data"]).notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  mimeType: varchar("mimeType", { length: 100 }),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Resource = typeof resources.$inferSelect;
+export type InsertResource = typeof resources.$inferInsert;
+
+/**
+ * Approvals table for tracking approval workflow
+ */
+export const approvals = mysqlTable("approvals", {
+  id: int("id").autoincrement().primaryKey(),
+  proposalId: int("proposalId").notNull().references(() => proposals.id, { onDelete: "cascade" }),
+  stage: mysqlEnum("stage", ["idea", "pricing", "final"]).notNull(),
+  reviewerId: int("reviewerId").notNull().references(() => users.id),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  comments: text("comments"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Approval = typeof approvals.$inferSelect;
+export type InsertApproval = typeof approvals.$inferInsert;
+
+/**
+ * Briefing table for storing OOH campaign briefings
+ */
+export const briefings = mysqlTable("briefings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  proposalId: int("proposalId").references(() => proposals.id, { onDelete: "cascade" }),
+  clientName: varchar("clientName", { length: 255 }).notNull(),
+  segment: varchar("segment", { length: 255 }).notNull(),
+  cities: text("cities").notNull(),
+  campaignPeriod: varchar("campaignPeriod", { length: 255 }).notNull(),
+  budget: varchar("budget", { length: 255 }).notNull(),
+  objective: text("objective").notNull(),
+  contactName: varchar("contactName", { length: 255 }).notNull(),
+  contactEmail: varchar("contactEmail", { length: 320 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Briefing = typeof briefings.$inferSelect;
+export type InsertBriefing = typeof briefings.$inferInsert;

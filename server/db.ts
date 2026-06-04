@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, InsertProposal, proposals, users } from "../drizzle/schema";
+import { InsertUser, InsertProposal, InsertResource, InsertApproval, InsertBriefing, proposals, users, resources, approvals, briefings } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -144,4 +144,68 @@ export async function deleteProposal(id: number, userId: number) {
   await db
     .delete(proposals)
     .where(and(eq(proposals.id, id), eq(proposals.userId, userId)));
+}
+
+// Resources helpers
+export async function createResource(resource: InsertResource) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(resources).values(resource);
+  const created = await db.select().from(resources).where(eq(resources.userId, resource.userId)).orderBy((t) => t.id).limit(1);
+  return created[0];
+}
+
+export async function getResourcesByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(resources).where(eq(resources.userId, userId));
+}
+
+export async function deleteResource(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(resources).where(eq(resources.id, id));
+  return true;
+}
+
+// Approvals helpers
+export async function createApproval(approval: InsertApproval) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return db.insert(approvals).values(approval);
+}
+
+export async function getApprovalsByProposalId(proposalId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(approvals).where(eq(approvals.proposalId, proposalId));
+}
+
+export async function updateApprovalStatus(id: number, status: string, comments?: string) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(approvals).set({ status: status as any, comments }).where(eq(approvals.id, id));
+  return true;
+}
+
+// Briefings helpers
+export async function createBriefing(briefing: InsertBriefing) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(briefings).values(briefing);
+  const created = await db.select().from(briefings).where(eq(briefings.userId, briefing.userId)).orderBy((t) => t.id).limit(1);
+  return created[0];
+}
+
+export async function getBriefingsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(briefings).where(eq(briefings.userId, userId));
+}
+
+export async function getBriefingById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(briefings).where(eq(briefings.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
 }

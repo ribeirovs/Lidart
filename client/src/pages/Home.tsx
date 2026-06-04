@@ -197,6 +197,34 @@ export default function Home() {
                 </div>
               </Card>
             </Link>
+
+            <Link href="/resources">
+              <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 p-8 hover:border-primary/50 transition-all cursor-pointer group">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-lg bg-primary/20 group-hover:bg-primary/30 flex items-center justify-center transition-colors">
+                    <FileText className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-foreground">Recursos</h3>
+                    <p className="text-sm text-muted-foreground">Gerencie inventário, preços e conteúdo</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
+
+            <Link href="/briefing">
+              <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 p-8 hover:border-primary/50 transition-all cursor-pointer group">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-lg bg-primary/20 group-hover:bg-primary/30 flex items-center justify-center transition-colors">
+                    <Plus className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-foreground">Novo Briefing</h3>
+                    <p className="text-sm text-muted-foreground">Iniciar processo Planner Lídart</p>
+                  </div>
+                </div>
+              </Card>
+            </Link>
           </div>
         </div>
       </main>
