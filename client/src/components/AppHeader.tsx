@@ -1,82 +1,113 @@
 import { Button } from "@/components/ui/button";
-import { FileText, LogOut } from "lucide-react";
-import { useLocation } from "wouter";
+import { LogOut } from "lucide-react";
+import { Link, useLocation } from "wouter";
 
 interface AppHeaderProps {
-  title: string;
-  showBack?: boolean;
-  onBackClick?: () => void;
-  rightAction?: {
-    label: string;
-    onClick: () => void;
-    variant?: "default" | "outline" | "ghost";
-    icon?: React.ReactNode;
-  };
-  user?: {
-    name?: string | null;
-    email?: string | null;
-  };
+  user?: { name?: string | null; email?: string | null } | null;
   onLogout?: () => void;
+  /** qual rota está ativa para destacar o link */
+  activeHref?: string;
 }
 
-export function AppHeader({
-  title,
-  showBack = false,
-  onBackClick,
-  rightAction,
-  user,
-  onLogout,
-}: AppHeaderProps) {
-  const [, navigate] = useLocation();
+const NAV_LINKS = [
+  { href: "/",             label: "Dashboard"  },
+  { href: "/proposals",    label: "Propostas"  },
+  { href: "/resources-new", label: "Recursos"  },
+  { href: "/briefing",     label: "Nova Proposta" },
+] as const;
+
+export function AppHeader({ user, onLogout, activeHref }: AppHeaderProps) {
+  const [location] = useLocation();
+  const active = activeHref ?? location;
 
   return (
-    <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {showBack && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBackClick || (() => navigate("/"))}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              ←
-            </Button>
-          )}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-              <FileText className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl font-serif font-bold text-foreground">{title}</h1>
-          </div>
-        </div>
+    <header
+      className="sticky top-0 z-50 backdrop-blur-sm border-b"
+      style={{
+        backgroundColor: "rgba(247,242,234,0.92)", /* --cream com 92% opacidade */
+        borderColor: "var(--cream-dark)",
+      }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-6">
 
-        <div className="flex items-center gap-4">
+        {/* ── Logotipo tipográfico ──────────────────────── */}
+        <Link href="/" className="shrink-0 leading-none no-underline flex items-baseline">
+          <span
+            style={{
+              fontFamily: "var(--font-sans, 'DM Sans', sans-serif)",
+              fontWeight: 600,
+              fontSize: "1.25rem",
+              color: "var(--ink)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Líd
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-serif, 'Playfair Display', serif)",
+    
+              fontWeight: 700,
+              fontSize: "1.25rem",
+              color: "var(--terra)",
+            }}
+          >
+            art
+          </span>
+        </Link>
+
+        {/* ── Nav central ──────────────────────────────── */}
+        <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
+          {NAV_LINKS.map(({ href, label }) => {
+            const isActive = href === "/" ? active === "/" : active.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="no-underline px-3 py-1 rounded text-sm transition-colors"
+                style={{
+                  color: isActive ? "var(--terra)" : "var(--ink-mid)",
+                  fontWeight: isActive ? 600 : 400,
+                  borderBottom: isActive ? "2px solid var(--terra)" : "2px solid transparent",
+                }}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* ── Usuário + logout ─────────────────────────── */}
+        <div className="shrink-0 flex items-center gap-2">
           {user && (
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              {user.name || user.email}
-            </span>
-          )}
-          {rightAction && (
-            <Button
-              onClick={rightAction.onClick}
-              variant={rightAction.variant || "default"}
-              size="sm"
-              className={rightAction.variant === "default" ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}
-            >
-              {rightAction.icon && <span className="mr-2">{rightAction.icon}</span>}
-              {rightAction.label}
-            </Button>
+            <>
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
+                style={{
+                  backgroundColor: "var(--terra-pale)",
+                  color: "var(--terra)",
+                }}
+              >
+                {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
+              </div>
+              <span
+                className="hidden sm:block text-sm max-w-[120px] truncate"
+                style={{ color: "var(--ink-mid)" }}
+              >
+                {user.name?.split(" ")[0] || user.email}
+              </span>
+            </>
           )}
           {onLogout && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onLogout}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-xs px-2 gap-1"
+              style={{ color: "var(--ink-light)" }}
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sair</span>
             </Button>
           )}
         </div>

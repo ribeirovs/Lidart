@@ -3,115 +3,134 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Lídart brand palette (valores concretos para o @theme) ── */
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
+
+  --color-background:        var(--background);
+  --color-foreground:        var(--foreground);
+  --color-card:              var(--card);
+  --color-card-foreground:   var(--card-foreground);
+  --color-popover:           var(--popover);
+  --color-popover-foreground:var(--popover-foreground);
+  --color-primary:           var(--primary);
+  --color-primary-foreground:var(--primary-foreground);
+  --color-secondary:         var(--secondary);
+  --color-secondary-foreground:var(--secondary-foreground);
+  --color-muted:             var(--muted);
+  --color-muted-foreground:  var(--muted-foreground);
+  --color-accent:            var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --color-destructive:       var(--destructive);
+  --color-border:            var(--border);
+  --color-input:             var(--input);
+  --color-ring:              var(--ring);
+  --color-chart-1:           var(--chart-1);
+  --color-chart-2:           var(--chart-2);
+  --color-chart-3:           var(--chart-3);
+  --color-chart-4:           var(--chart-4);
+  --color-chart-5:           var(--chart-5);
+  --color-sidebar:           var(--sidebar);
+  --color-sidebar-foreground:var(--sidebar-foreground);
+  --color-sidebar-primary:   var(--sidebar-primary);
+  --color-sidebar-primary-foreground:var(--sidebar-primary-foreground);
+  --color-sidebar-accent:    var(--sidebar-accent);
+  --color-sidebar-accent-foreground:var(--sidebar-accent-foreground);
+  --color-sidebar-border:    var(--sidebar-border);
+  --color-sidebar-ring:      var(--sidebar-ring);
+
+  /* Tokens Lídart com valores concretos */
+  --color-terra:       #B8562A;
+  --color-terra-light: #D4724A;
+  --color-terra-pale:  #F2E4DA;
+  --color-musgo:       #4A6640;
+  --color-ocre:        #C49A1A;
+  --color-cream:       #F7F2EA;
+  --color-cream-dark:  #EDE6D8;
+  --color-ink:         #1C1510;
+  --color-ink-mid:     #4A3F36;
+  --color-ink-light:   #8C7D70;
 }
 
 :root {
-  /* Paleta sofisticada inspirada em Lídart */
-  --primary: oklch(0.38 0.15 140);  /* Verde musgo */
-  --primary-foreground: oklch(0.98 0.001 0);
-  --sidebar-primary: oklch(0.38 0.15 140);
-  --sidebar-primary-foreground: oklch(0.98 0.001 0);
-  --chart-1: oklch(0.62 0.18 60);   /* Ouro */
-  --chart-2: oklch(0.38 0.15 140);
-  --chart-3: oklch(0.5 0.12 140);
-  --chart-4: oklch(0.35 0.14 140);
-  --chart-5: oklch(0.3 0.13 140);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.08 0.01 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.08 0.01 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.08 0.01 0);
-  --secondary: oklch(0.94 0.002 140);
-  --secondary-foreground: oklch(0.3 0.12 140);
-  --muted: oklch(0.94 0.002 0);
-  --muted-foreground: oklch(0.6 0.01 0);
-  --accent: oklch(0.38 0.15 140);
-  --accent-foreground: oklch(0.98 0.001 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.94 0.002 0);
-  --input: oklch(0.94 0.002 0);
-  --ring: oklch(0.38 0.15 140);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.08 0.01 0);
-  --sidebar-accent: oklch(0.38 0.15 140);
-  --sidebar-accent-foreground: oklch(0.98 0.001 0);
-  --sidebar-border: oklch(0.94 0.002 0);
-  --sidebar-ring: oklch(0.38 0.15 140);
+  /* ── Paleta Lídart ── */
+  --terra:       #B8562A;
+  --terra-light: #D4724A;
+  --terra-pale:  #F2E4DA;
+  --musgo:       #4A6640;
+  --ocre:        #C49A1A;
+  --cream:       #F7F2EA;
+  --cream-dark:  #EDE6D8;
+  --ink:         #1C1510;
+  --ink-mid:     #4A3F36;
+  --ink-light:   #8C7D70;
+
+  /* ── Tokens semânticos shadcn/ui ── */
+  --primary:              #B8562A;
+  --primary-foreground:   #FDFAF5;
+  --secondary:            #F2E4DA;
+  --secondary-foreground: #1C1510;
+  --accent:               #F2E4DA;
+  --accent-foreground:    #1C1510;
+  --destructive:          oklch(0.577 0.245 27.325);
+  --background:           #F7F2EA;
+  --foreground:           #1C1510;
+  --card:                 #FDFAF5;
+  --card-foreground:      #1C1510;
+  --popover:              #FDFAF5;
+  --popover-foreground:   #1C1510;
+  --muted:                #EDE6D8;
+  --muted-foreground:     #8C7D70;
+  --border:               #EDE6D8;
+  --input:                #EDE6D8;
+  --ring:                 #B8562A;
+
+  /* ── Sidebar ── */
+  --sidebar:                      #FDFAF5;
+  --sidebar-foreground:           #1C1510;
+  --sidebar-primary:              #B8562A;
+  --sidebar-primary-foreground:   #FDFAF5;
+  --sidebar-accent:               #F2E4DA;
+  --sidebar-accent-foreground:    #1C1510;
+  --sidebar-border:               #EDE6D8;
+  --sidebar-ring:                 #B8562A;
+
+  /* ── Charts ── */
+  --chart-1: #B8562A;
+  --chart-2: #D4724A;
+  --chart-3: #4A6640;
+  --chart-4: #C49A1A;
+  --chart-5: #4A3F36;
+
+  /* ── Geometria editorial ── */
+  --radius: 4px;
 }
 
 .dark {
-  --primary: oklch(0.62 0.18 60);   /* Ouro */
-  --primary-foreground: oklch(0.08 0.01 0);
-  --sidebar-primary: oklch(0.62 0.18 60);
-  --sidebar-primary-foreground: oklch(0.08 0.01 0);
-  --background: oklch(0.08 0.01 0);
-  --foreground: oklch(0.98 0.001 0);
-  --card: oklch(0.12 0.01 0);
-  --card-foreground: oklch(0.98 0.001 0);
-  --popover: oklch(0.12 0.01 0);
-  --popover-foreground: oklch(0.98 0.001 0);
-  --secondary: oklch(0.15 0.01 140);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.2 0.01 0);
-  --muted-foreground: oklch(0.6 0.01 0);
-  --accent: oklch(0.62 0.18 60);
-  --accent-foreground: oklch(0.08 0.01 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.08 0.01 0);
-  --border: oklch(0.2 0.01 0);
-  --input: oklch(0.2 0.01 0);
-  --ring: oklch(0.62 0.18 60);
-  --chart-1: oklch(0.62 0.18 60);
-  --chart-2: oklch(0.38 0.15 140);
-  --chart-3: oklch(0.5 0.12 140);
-  --chart-4: oklch(0.35 0.14 140);
-  --chart-5: oklch(0.3 0.13 140);
-  --sidebar: oklch(0.12 0.01 0);
-  --sidebar-foreground: oklch(0.98 0.001 0);
-  --sidebar-accent: oklch(0.62 0.18 60);
-  --sidebar-accent-foreground: oklch(0.08 0.01 0);
-  --sidebar-border: oklch(0.2 0.01 0);
-  --sidebar-ring: oklch(0.62 0.18 60);
+  --primary:            #D4724A;
+  --primary-foreground: #FDFAF5;
+  --background:         #1C1510;
+  --foreground:         #FDFAF5;
+  --card:               #2A211A;
+  --card-foreground:    #FDFAF5;
+  --popover:            #2A211A;
+  --popover-foreground: #FDFAF5;
+  --secondary:          #3A2D25;
+  --secondary-foreground:#FDFAF5;
+  --muted:              #3A2D25;
+  --muted-foreground:   #8C7D70;
+  --accent:             #B8562A;
+  --accent-foreground:  #FDFAF5;
+  --border:             #3A2D25;
+  --input:              #3A2D25;
+  --ring:               #B8562A;
+  --sidebar:            #2A211A;
+  --sidebar-foreground: #FDFAF5;
+  --sidebar-accent:     #B8562A;
+  --sidebar-border:     #3A2D25;
 }
 
 @layer base {
@@ -120,59 +139,28 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans, 'DM Sans', sans-serif);
   }
-  button:not(:disabled),
-  [role="button"]:not([aria-disabled="true"]),
-  [type="button"]:not(:disabled),
-  [type="submit"]:not(:disabled),
-  [type="reset"]:not(:disabled),
-  a[href],
-  select:not(:disabled),
-  input[type="checkbox"]:not(:disabled),
-  input[type="radio"]:not(:disabled) {
-    @apply cursor-pointer;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif, 'Playfair Display', serif);
   }
 }
 
-@layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
-  .container {
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
-    padding-right: 1rem;
+@layer utilities {
+  .label-lidart {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--terra);
   }
-
-  .flex {
-    min-height: 0;
-    min-width: 0;
-  }
-
-  @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
-      padding-right: 1.5rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .container {
-      padding-left: 2rem; /* 32px - desktop padding */
-      padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
-    }
+  .label-muted {
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-light);
   }
 }

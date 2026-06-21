@@ -18,7 +18,12 @@ function getForgeConfig() {
 }
 
 function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
+  return relKey
+    .replace(/^\/+/, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9_\-\.\/]/g, "");
 }
 
 function appendHashSuffix(relKey: string): string {

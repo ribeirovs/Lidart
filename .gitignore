@@ -112,3 +112,19 @@ temp/
 # Manus version file (auto-generated, not part of source)
 client/public/__manus__/version.json
 .project-config.json
+
+# Scratch / local debugging (not part of source)
+scratch/
+backups/
+package-lock.json
+_t11.mts
+BRIEFING_ANTIGRAVITY.md
+reiniciar.bat
+check_all_db.cjs
+check_insert.ts
+check_proposals.ts
+query_db_mysql.cjs
+query_db_mysql.js
+search_db_for_n8n.cjs
+update_campaign_period.js
+update_proposal_content_type.js

@@ -3,6 +3,7 @@ import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
+import { ENV } from "./env";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -48,6 +49,36 @@ export function registerOAuthRoutes(app: Express) {
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });
+    }
+  });
+
+  // Local developer login backdoor
+  app.get("/api/auth/dev-login", async (req: Request, res: Response) => {
+    try {
+      const devOpenId = ENV.ownerOpenId || "dev-user";
+      
+      // Ensure user exists in database
+      await db.upsertUser({
+        openId: devOpenId,
+        name: "Desenvolvedor Local",
+        email: "dev@planner.local",
+        loginMethod: "dev",
+        role: "admin",
+        lastSignedIn: new Date(),
+      });
+
+      const sessionToken = await sdk.createSessionToken(devOpenId, {
+        name: "Desenvolvedor Local",
+        expiresInMs: ONE_YEAR_MS,
+      });
+
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+      res.redirect(302, "/");
+    } catch (error) {
+      console.error("[DevAuth] Failed", error);
+      res.status(500).send("Dev login failed");
     }
   });
 }

@@ -1,6 +1,34 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+
+vi.mock("./_core/llm", () => {
+  return {
+    invokeLLM: vi.fn().mockImplementation(async (params) => {
+      return {
+        id: "mock-id",
+        created: Date.now(),
+        model: "mock-model",
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: "# Mock Proposal\n\nThis is a mock proposal content generated in test.",
+            },
+            finish_reason: "stop",
+          }
+        ],
+      };
+    }),
+  };
+});
+
+vi.mock("./resources-parser", () => {
+  return {
+    getParsedResourcesContext: vi.fn().mockResolvedValue(""),
+  };
+});
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 

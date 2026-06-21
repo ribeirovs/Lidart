@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
+import { AppHeader } from "@/components/AppHeader";
 import { ArrowLeft, Plus, Trash2, Eye, Download, Search, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -12,12 +12,12 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  draft: { label: "Rascunho", color: "bg-gray-100 text-gray-800" },
-  sent: { label: "Enviada", color: "bg-blue-100 text-blue-800" },
-  accepted: { label: "Aceita", color: "bg-green-100 text-green-800" },
-  rejected: { label: "Rejeitada", color: "bg-red-100 text-red-800" },
-  archived: { label: "Arquivada", color: "bg-gray-200 text-gray-700" },
+const statusLabels: Record<string, { label: string; color: string; borderColor: string }> = {
+  draft:    { label: "Rascunho",  color: "bg-gray-100 text-gray-800",   borderColor: "#8C7D70" },
+  sent:     { label: "Enviada",   color: "bg-blue-100 text-blue-800",   borderColor: "#C49A1A" },
+  accepted: { label: "Aceita",    color: "bg-green-100 text-green-800", borderColor: "#4A6640" },
+  rejected: { label: "Rejeitada", color: "bg-red-100 text-red-800",     borderColor: "#B8562A" },
+  archived: { label: "Arquivada", color: "bg-gray-200 text-gray-700",   borderColor: "#4A3F36" },
 };
 
 export default function ProposalsList() {
@@ -25,6 +25,7 @@ export default function ProposalsList() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const { data: proposals, isLoading, refetch } = trpc.proposals.list.useQuery();
 
@@ -39,17 +40,47 @@ export default function ProposalsList() {
 
     return matchesSearch && matchesStatus;
   }) || [];
-  const deleteMutation = trpc.proposals.delete.useMutation();
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Tem certeza que deseja deletar esta proposta?")) return;
+  const toggleSelect = (id: number) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selected.size === filteredProposals.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filteredProposals.map((p) => p.id)));
+    }
+  };
+
+  const deleteMutation = trpc.proposals.deleteProposal.useMutation();
+
+  const handleDeleteSelected = async () => {
+    if (selected.size === 0) return;
+    const confirmMessage = selected.size === 1
+      ? "Tem certeza que deseja deletar a proposta selecionada?"
+      : `Tem certeza que deseja deletar as ${selected.size} propostas selecionadas?`;
+    
+    if (!confirm(confirmMessage)) return;
 
     try {
-      await deleteMutation.mutateAsync({ id });
-      toast.success("Proposta deletada com sucesso!");
+      await Promise.all(
+        Array.from(selected).map((id) => deleteMutation.mutateAsync({ id }))
+      );
+      toast.success(
+        selected.size === 1
+          ? "Proposta deletada com sucesso!"
+          : `${selected.size} propostas deletadas com sucesso!`
+      );
+      setSelected(new Set());
       refetch();
     } catch (error) {
-      toast.error("Erro ao deletar proposta");
+      toast.error("Erro ao deletar propostas");
       console.error(error);
     }
   };
@@ -84,30 +115,8 @@ export default function ProposalsList() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
-      {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/")}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <h1 className="text-2xl font-serif font-bold text-foreground">Minhas Propostas</h1>
-          </div>
-          <Button
-            onClick={() => navigate("/create")}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Proposta
-          </Button>
-        </div>
-      </header>
+    <div className="min-h-screen" style={{ backgroundColor: "var(--cream)" }}>
+      <AppHeader user={user} activeHref="/proposals" />
 
       {/* Main Content */}
       <main className="container max-w-7xl mx-auto px-4 py-12">
@@ -146,7 +155,7 @@ export default function ProposalsList() {
               </p>
             </div>
             <Button
-              onClick={() => navigate("/create")}
+              onClick={() => navigate("/briefing")}
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold mx-auto"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -159,60 +168,108 @@ export default function ProposalsList() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {filteredProposals.map((proposal) => (
+            <div className="flex items-center justify-between mb-4 border-b border-border/30 pb-2">
+              <h2 className="text-xl font-serif font-bold text-foreground">Suas Propostas</h2>
+              {selected.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteSelected}
+                  className="font-semibold animate-in fade-in zoom-in-95 duration-150"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Deletar selecionados ({selected.size})
+                </Button>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-between mb-2 px-2">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selected.size === filteredProposals.length && filteredProposals.length > 0}
+                  onChange={toggleAll}
+                  className="rounded border-border focus:ring-primary w-4 h-4"
+                />
+                Selecionar todas ({filteredProposals.length})
+              </label>
+            </div>
+            {filteredProposals.map((proposal) => {
+              const status = statusLabels[proposal.status as keyof typeof statusLabels];
+              const borderColor = status?.borderColor ?? "#8C7D70";
+              return (
               <Card
                 key={proposal.id}
-                className="border border-border/50 bg-white/50 backdrop-blur p-6 hover:border-primary/30 transition-colors cursor-pointer"
+                className="bg-white cursor-pointer hover:shadow-md transition-all"
+                style={{ borderLeft: `3px solid ${borderColor}`, borderRadius: "4px" }}
                 onClick={() => navigate(`/proposal/${proposal.id}`)}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold text-foreground">
-                        {proposal.clientName} - {proposal.clientCompany}
-                      </h3>
-                      <Badge className={statusLabels[proposal.status as keyof typeof statusLabels]?.color || "bg-gray-100"}>
-                        {statusLabels[proposal.status as keyof typeof statusLabels]?.label || proposal.status}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {proposal.projectScope}
-                    </p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2">
-                      <span>
-                        Criada em {format(new Date(proposal.createdAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                      </span>
-                      {proposal.deadline && <span>Prazo: {proposal.deadline}</span>}
-                    </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "24px" }}>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelect(proposal.id);
+                    }}
+                    style={{ flexShrink: 0 }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(proposal.id)}
+                      onChange={() => {}}
+                      className="rounded border-border focus:ring-primary cursor-pointer"
+                      style={{ width: "18px", height: "18px" }}
+                    />
                   </div>
-
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownloadPDF(proposal.id);
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(proposal.id);
-                      }}
-                      className="text-destructive hover:text-destructive/90"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                      <div style={{ flex: 1 }}>
+                        <h3 className="text-lg font-semibold" style={{ color: "var(--ink)", marginBottom: "4px" }}>
+                          {proposal.clientName} — {proposal.clientCompany}
+                        </h3>
+                        <p className="text-sm line-clamp-2" style={{ color: "var(--ink-light)", marginBottom: "8px" }}>
+                          {proposal.projectScope}
+                        </p>
+                        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                          <span
+                            style={{
+                              fontFamily: "var(--font-mono, 'DM Mono', monospace)",
+                              fontSize: "10px",
+                              fontWeight: 500,
+                              letterSpacing: "0.12em",
+                              textTransform: "uppercase",
+                              color: borderColor,
+                            }}
+                          >
+                            {status?.label ?? proposal.status}
+                          </span>
+                          <span className="text-xs" style={{ color: "var(--ink-light)" }}>
+                            {format(new Date(proposal.createdAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                          </span>
+                          {proposal.deadline && (
+                            <span className="text-xs" style={{ color: "var(--ink-light)" }}>
+                              Prazo: {proposal.deadline}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadPDF(proposal.id);
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                        style={{ marginLeft: "16px", flexShrink: 0 }}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>

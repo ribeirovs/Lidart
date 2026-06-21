@@ -141,6 +141,16 @@ export async function updateProposal(
 export async function deleteProposal(id: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  // COFRE: salva cópia integral da proposta ANTES de apagar — nada se perde
+  const { backupProposalBeforeDelete } = await import("./backup");
+  await backupProposalBeforeDelete(id, userId);
+  // Auditoria: registra toda exclusão (console + arquivo) para rastrear perda de dados
+  const auditMsg = `[AUDIT] deleteProposal: proposta #${id} apagada pelo usuário #${userId} em ${new Date().toISOString()}`;
+  console.warn(auditMsg);
+  try {
+    const fsMod = await import("fs");
+    fsMod.appendFileSync("delete-audit.log", auditMsg + "\n", "utf-8");
+  } catch { /* log em arquivo é melhor-esforço */ }
   await db
     .delete(proposals)
     .where(and(eq(proposals.id, id), eq(proposals.userId, userId)));
@@ -151,7 +161,7 @@ export async function createResource(resource: InsertResource) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.insert(resources).values(resource);
-  const created = await db.select().from(resources).where(eq(resources.userId, resource.userId)).orderBy((t) => t.id).limit(1);
+  const created = await db.select().from(resources).where(eq(resources.userId, resource.userId)).orderBy(desc(resources.id)).limit(1);
   return created[0];
 }
 
@@ -193,7 +203,7 @@ export async function createBriefing(briefing: InsertBriefing) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(briefings).values(briefing);
-  const created = await db.select().from(briefings).where(eq(briefings.userId, briefing.userId)).orderBy((t) => t.id).limit(1);
+  const created = await db.select().from(briefings).where(eq(briefings.userId, briefing.userId)).orderBy(desc(briefings.id)).limit(1);
   return created[0];
 }
 

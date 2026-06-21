@@ -1,0 +1,7 @@
+[
+  { "formato": "Big Mupi Digital", "praca": "São Paulo", "arquivo": "big-mupi-santo-andre.jpg", "formatoLabel": "Big Mupi Digital", "localLabel": "Santo André · SP" },
+  { "formato": "Placa de Rua Digital", "praca": "Rio de Janeiro", "arquivo": "placa-rua-copacabana.jpg", "formatoLabel": "Placa de Rua Digital", "localLabel": "Rio de Janeiro · RJ" },
+  { "formato": "Painel Digital", "praca": "Belo Horizonte", "arquivo": "painel-digital-bh.jpg", "formatoLabel": "Painel Digital", "localLabel": "Belo Horizonte · MG" },
+  { "formato": "Painel de LED Desembarque", "praca": "Rio de Janeiro", "arquivo": "led-desembarque-sdu.jpg", "formatoLabel": "Painel de LED · Desembarque", "localLabel": "Aeroporto Santos Dumont · RJ" },
+  { "formato": "AirMub", "praca": "Goiânia", "arquivo": "airmub-gyn.jpg", "formatoLabel": "AirMub · Mobiliário de descanso", "localLabel": "Aeroporto · Goiânia" }
+]

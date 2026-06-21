@@ -22,6 +22,20 @@
       "when": 1780595050988,
       "tag": "0002_public_rhino",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1780880739011,
+      "tag": "0003_fast_magus",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1781105920753,
+      "tag": "0004_grey_salo",
+      "breakpoints": true
     }
   ]
 }
