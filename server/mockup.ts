@@ -87,10 +87,13 @@ export async function generateMockupSlides(
     const photo = matchPhotoForItem({ ...it, cidade }, inventory);
     if (!photo || usados.has(photo.arquivo)) continue;
     usados.add(photo.arquivo);
+    // Rótulos do slide: prioriza o item do plano (nome/cidade·UF); usa os labels curados
+    // do manifest quando existirem.
+    const localPlano = `${cidade}${it.uf ? ` · ${it.uf}` : ""}`;
     escolhidos.push({
       photo,
-      formato: photo.formatoLabel || photo.formato,
-      local: photo.localLabel || cidade,
+      formato: photo.formatoLabel || it.nome || photo.formato,
+      local: photo.localLabel || localPlano,
     });
   }
 

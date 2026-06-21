@@ -27,6 +27,8 @@ export interface CatalogRow {
   vertical: string;
   local: string;
   nome: string;
+  /** Nome do arquivo da foto do ponto (coluna "IMAGEM DO PRODUTO"), p/ casar com o inventário de mockup. */
+  imagem: string;
   cota: string;
   tipo: string;
   veiculacao: string;
@@ -95,8 +97,7 @@ export async function loadFullCatalog(userId: number): Promise<CatalogRow[]> {
     return arr;
   };
 
-  // Cabeçalho fixo conhecido (linha 6): col 1=UF 2=CIDADE 3=VERTICAL 4=LOCAL 6=NOME
-  // 10=COTA 11=TIPO 12=VEICULAÇÃO 13=FACES 19=CUSTO UNIT 24=CNPJ 25=RAZÃO 26=ENDEREÇO
+  // Localiza a linha de cabeçalho (procura UF + CIDADE + COTA nos primeiros 20 registros).
   let headerRow = -1;
   sheet.eachRow({ includeEmpty: false }, (row, rn) => {
     if (headerRow !== -1 || rn > 20) return;
@@ -105,27 +106,58 @@ export async function loadFullCatalog(userId: number): Promise<CatalogRow[]> {
   });
   if (headerRow === -1) return [];
 
+  // Mapa coluna→índice por NOME do cabeçalho (robusto à inserção de colunas, ex.: "IMAGEM
+  // DO PRODUTO"/"CODIGO DO PRODUTO"). Fallback p/ o índice fixo antigo se o nome não existir.
+  const header = get(sheet.getRow(headerRow));
+  const colKey = (s: string) => norm(s).replace(/\s+/g, " ").trim();
+  const findCol = (aliases: string[], fallback: number): number => {
+    const al = aliases.map(colKey);
+    for (let k = 0; k < header.length; k++) {
+      const h = colKey(header[k]);
+      if (h && al.some((a) => h === a || h.startsWith(a))) return k;
+    }
+    return fallback;
+  };
+  const ix = {
+    uf: findCol(["uf"], 1),
+    cidade: findCol(["cidade"], 2),
+    vertical: findCol(["vertical"], 3),
+    local: findCol(["local"], 4),
+    nome: findCol(["nome comercial", "nome"], 6),
+    imagem: findCol(["imagem do produto", "imagem"], -1),
+    cota: findCol(["cota"], 10),
+    tipo: findCol(["tipo"], 11),
+    veiculacao: findCol(["veiculacao"], 12),
+    faces: findCol(["qtd de faces", "faces"], 13),
+    custo: findCol(["custo unitario"], 19),
+    cnpj: findCol(["cnpj"], 24),
+    razao: findCol(["razao social", "razao"], 25),
+    endereco: findCol(["endereco"], 26),
+  };
+  const cell = (v: string[], i: number) => (i >= 0 ? (v[i] || "").trim() : "");
+
   const out: CatalogRow[] = [];
   sheet.eachRow({ includeEmpty: false }, (row, rn) => {
     if (rn <= headerRow) return;
     const v = get(row);
-    const cidade = (v[2] || "").trim();
-    const preco = parseMoney(v[19] || "");
+    const cidade = cell(v, ix.cidade);
+    const preco = parseMoney(v[ix.custo] || "");
     if (!cidade || preco <= 0) return;
     out.push({
-      uf: (v[1] || "").trim(),
+      uf: cell(v, ix.uf),
       cidade,
-      vertical: (v[3] || "").trim(),
-      local: (v[4] || "").trim(),
-      nome: (v[6] || "").trim(),
-      cota: (v[10] || "").trim(),
-      tipo: (v[11] || "").trim(),
-      veiculacao: (v[12] || "").trim(),
-      faces: parseInt((v[13] || "").replace(/[^\d]/g, ""), 10) || 1,
+      vertical: cell(v, ix.vertical),
+      local: cell(v, ix.local),
+      nome: cell(v, ix.nome),
+      imagem: cell(v, ix.imagem),
+      cota: cell(v, ix.cota),
+      tipo: cell(v, ix.tipo),
+      veiculacao: cell(v, ix.veiculacao),
+      faces: parseInt(cell(v, ix.faces).replace(/[^\d]/g, ""), 10) || 1,
       custoUnitario: preco,
-      cnpj: (v[24] || "").trim(),
-      razao: (v[25] || "").trim(),
-      endereco: (v[26] || "").trim(),
+      cnpj: cell(v, ix.cnpj),
+      razao: cell(v, ix.razao),
+      endereco: cell(v, ix.endereco),
     });
   });
   return out;
@@ -219,6 +251,8 @@ export interface PlanItemResolvido {
   cidade: string; uf: string; vertical: string; nome: string; local: string;
   cota: string; veiculacao: string; qtd: number; periodos: number; custoUnitario: number; subtotal: number;
   cnpj: string; razao: string;
+  /** Nome do arquivo da foto do ponto (coluna "IMAGEM DO PRODUTO") — usado p/ casar o mockup. */
+  imagem: string;
 }
 export interface PlanoResolvido {
   itens: PlanItemResolvido[];
@@ -249,7 +283,7 @@ export async function resolvePlanForPresentation(userId: number, mediaPlanJson?:
     itens.push({
       cidade: r.cidade, uf: r.uf, vertical: r.vertical, nome: r.nome, local: r.local,
       cota: r.cota, veiculacao: r.veiculacao, qtd, periodos: res.periodos, custoUnitario: r.custoUnitario,
-      subtotal, cnpj: r.cnpj, razao: r.razao,
+      subtotal, cnpj: r.cnpj, razao: r.razao, imagem: r.imagem,
     });
   }
   if (itens.length === 0) return empty;
