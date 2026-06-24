@@ -29,6 +29,10 @@ export interface CatalogRow {
   nome: string;
   /** Nome do arquivo da foto do ponto (coluna "IMAGEM DO PRODUTO"), p/ casar com o inventário de mockup. */
   imagem: string;
+  /** Inserções por dia (coluna "INS POR DIA" da tabela). */
+  insPorDia: number;
+  /** Impacto estimado por inserção/dia (coluna "IMPACTO ESTIMADO" da tabela). */
+  impactoEstimado: number;
   cota: string;
   tipo: string;
   veiculacao: string;
@@ -125,6 +129,8 @@ export async function loadFullCatalog(userId: number): Promise<CatalogRow[]> {
     local: findCol(["local"], 4),
     nome: findCol(["nome comercial", "nome"], 6),
     imagem: findCol(["imagem do produto", "imagem"], -1),
+    insPorDia: findCol(["ins por dia", "insercoes por dia"], -1),
+    impactoEstimado: findCol(["impacto estimado"], -1),
     cota: findCol(["cota"], 10),
     tipo: findCol(["tipo"], 11),
     veiculacao: findCol(["veiculacao"], 12),
@@ -150,6 +156,8 @@ export async function loadFullCatalog(userId: number): Promise<CatalogRow[]> {
       local: cell(v, ix.local),
       nome: cell(v, ix.nome),
       imagem: cell(v, ix.imagem),
+      insPorDia: parseMoney(cell(v, ix.insPorDia)),
+      impactoEstimado: parseMoney(cell(v, ix.impactoEstimado)),
       cota: cell(v, ix.cota),
       tipo: cell(v, ix.tipo),
       veiculacao: cell(v, ix.veiculacao),
@@ -253,6 +261,9 @@ export interface PlanItemResolvido {
   cnpj: string; razao: string;
   /** Nome do arquivo da foto do ponto (coluna "IMAGEM DO PRODUTO") — usado p/ casar o mockup. */
   imagem: string;
+  /** Inserções por dia e impacto estimado (colunas da tabela), p/ sair na planilha. */
+  insPorDia: number;
+  impactoEstimado: number;
 }
 export interface PlanoResolvido {
   itens: PlanItemResolvido[];
@@ -284,6 +295,7 @@ export async function resolvePlanForPresentation(userId: number, mediaPlanJson?:
       cidade: r.cidade, uf: r.uf, vertical: r.vertical, nome: r.nome, local: r.local,
       cota: r.cota, veiculacao: r.veiculacao, qtd, periodos: res.periodos, custoUnitario: r.custoUnitario,
       subtotal, cnpj: r.cnpj, razao: r.razao, imagem: r.imagem,
+      insPorDia: r.insPorDia, impactoEstimado: r.impactoEstimado,
     });
   }
   if (itens.length === 0) return empty;

@@ -1220,6 +1220,7 @@ PRIORIZE NESTA ORDEM (a 1ª manda mais que a 2ª, e assim por diante):
 
 REGRAS:
 - Escolha SOMENTE entre os NÚMEROS da lista. NUNCA invente opção.
+- TAMANHOS: se o MESMO formato aparece em tamanhos diferentes (ex.: "… - M" e "… - G"), recomende APENAS UM tamanho por praça — nunca os dois.
 - Conjunto ENXUTO e coerente (em geral 3 a 8 opções).
 - Motivo curto (1 linha), específico — diga qual diretriz pesou (ex.: "briefing pediu", "pesquisa indica", "serve à ideia").
 - Responda APENAS com JSON, sem cercas de código: {"recomendadas":[{"n":<número da opção>,"motivo":"..."}]}`;
@@ -1235,12 +1236,21 @@ REGRAS:
               const parsed = JSON.parse(m[0]);
               if (Array.isArray(parsed?.recomendadas)) {
                 const vistos = new Set<string>();
+                // Dedup por FORMATO-BASE+local: mesmo formato em tamanhos (M/G/P) diferentes
+                // na mesma praça → só UM (Vivi: "precisa ser um ou outro"). Mantém o 1º que a IA escolheu.
+                const sizeRe = /\s*[-–]\s*(PP|GG|XG|P|M|G)\s*$/i;
+                const formatosBase = new Set<string>();
                 for (const r of parsed.recomendadas) {
                   const n = Number(r?.n);
                   if (!Number.isInteger(n) || n < 1 || n > opts.length) continue;
-                  const chave = (opts[n - 1] as any).chave;
+                  const o = opts[n - 1] as any;
+                  const chave = o.chave;
                   if (vistos.has(chave)) continue;
+                  const baseFmt = String(o.nome || "").replace(sizeRe, "").trim().toLowerCase()
+                    + "|" + String(o.local || "").trim().toLowerCase();
+                  if (formatosBase.has(baseFmt)) continue; // já recomendou outro tamanho desse formato
                   vistos.add(chave);
+                  formatosBase.add(baseFmt);
                   recomendadas.push({ chave, motivo: String(r?.motivo || "").slice(0, 160) });
                   if (recomendadas.length >= 12) break;
                 }

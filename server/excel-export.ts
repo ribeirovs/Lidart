@@ -589,6 +589,8 @@ async function buildItemsFromMediaPlan(userId: number, mediaPlanJson?: string | 
       tipo: r.tipo,
       veiculacao: r.veiculacao,
       qtdFaces: r.faces,
+      insPorDia: r.insPorDia,
+      impactoEstimado: r.impactoEstimado,
       // PERÍODO inclui o multiplicador não-linear × quantidade, p/ o total do
       // template (P×O) bater EXATO com o subtotal do motor.
       periodo: Math.round(res.periodos * qtd * 100) / 100,
