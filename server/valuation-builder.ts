@@ -17,7 +17,7 @@ import ExcelJS from "exceljs";
 import { getDb } from "./db";
 import { resources } from "../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
-import { storageGetSignedUrl } from "./storage";
+import { storageReadBuffer } from "./storage";
 
 const SHEET = "Tabela de Preços Kallas_2026";
 
@@ -79,10 +79,10 @@ export async function loadFullCatalog(userId: number): Promise<CatalogRow[]> {
   });
   if (!priceRes) return [];
 
-  const resp = await fetch(await storageGetSignedUrl(priceRes.fileKey));
-  if (!resp.ok) return [];
+  const buf = await storageReadBuffer(priceRes.fileKey);
+  if (!buf) return [];
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(Buffer.from(await resp.arrayBuffer()) as any);
+  await wb.xlsx.load(buf as any);
   const sheet = wb.getWorksheet(SHEET) || wb.worksheets[0];
   if (!sheet) return [];
 

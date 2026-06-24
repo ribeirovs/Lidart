@@ -1,48 +1,29 @@
 import type { Express } from "express";
-import { ENV } from "./env";
+import fs from "fs";
+import { storageLocalPath } from "../storage";
 
+// Serve os arquivos do storage LOCAL (migração: não redireciona mais p/ o Forge/Manus).
 export function registerStorageProxy(app: Express) {
-  app.get("/manus-storage/*", async (req, res) => {
+  app.get("/manus-storage/*", (req, res) => {
     const key = (req.params as Record<string, string>)[0];
     if (!key) {
       res.status(400).send("Missing storage key");
       return;
     }
-
-    if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {
-      res.status(500).send("Storage proxy not configured");
+    let full: string;
+    try {
+      full = storageLocalPath(key);
+    } catch {
+      res.status(400).send("Invalid storage key");
       return;
     }
-
-    try {
-      const forgeUrl = new URL(
-        "v1/storage/presign/get",
-        ENV.forgeApiUrl.replace(/\/+$/, "") + "/",
-      );
-      forgeUrl.searchParams.set("path", key);
-
-      const forgeResp = await fetch(forgeUrl, {
-        headers: { Authorization: `Bearer ${ENV.forgeApiKey}` },
-      });
-
-      if (!forgeResp.ok) {
-        const body = await forgeResp.text().catch(() => "");
-        console.error(`[StorageProxy] forge error: ${forgeResp.status} ${body}`);
-        res.status(502).send("Storage backend error");
-        return;
-      }
-
-      const { url } = (await forgeResp.json()) as { url: string };
-      if (!url) {
-        res.status(502).send("Empty signed URL from backend");
-        return;
-      }
-
-      res.set("Cache-Control", "no-store");
-      res.redirect(307, url);
-    } catch (err) {
-      console.error("[StorageProxy] failed:", err);
-      res.status(502).send("Storage proxy error");
+    if (!fs.existsSync(full)) {
+      res.status(404).send("Not found");
+      return;
     }
+    res.set("Cache-Control", "no-store");
+    res.sendFile(full, (err) => {
+      if (err && !res.headersSent) res.status(500).send("Storage read error");
+    });
   });
 }

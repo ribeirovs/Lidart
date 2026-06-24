@@ -1,27 +1,23 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uploads via Forge Server presigned URL to S3 (PUT direct).
-// Downloads return /manus-storage/{key} paths served via 307 redirect.
+// Storage LOCAL (migração: tirou a dependência do Forge/Manus, que passou a dar 403).
+// Grava os arquivos em <projeto>/local_storage e serve por /manus-storage/{key}
+// (mesma URL de antes — frontend e proxy seguem iguais). Para mover p/ S3/R2 depois,
+// basta reimplementar put/get/getSignedUrl mantendo o contrato { key, url }.
 
-import { ENV } from "./_core/env";
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
 
-function getForgeConfig() {
-  const forgeUrl = ENV.forgeApiUrl;
-  const forgeKey = ENV.forgeApiKey;
-
-  if (!forgeUrl || !forgeKey) {
-    throw new Error(
-      "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY",
-    );
-  }
-
-  return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
-}
+const STORAGE_DIR =
+  process.env.LOCAL_STORAGE_DIR || path.join(process.cwd(), "local_storage");
+const PORT = process.env.PORT || "3200";
+// URL absoluta p/ fetch server-side (ex.: loadFullCatalog) bater no próprio servidor.
+const SELF_BASE = process.env.SELF_BASE_URL || `http://127.0.0.1:${PORT}`;
 
 function normalizeKey(relKey: string): string {
   return relKey
     .replace(/^\/+/, "")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/\s+/g, "_")
     .replace(/[^a-zA-Z0-9_\-\.\/]/g, "");
 }
@@ -33,46 +29,26 @@ function appendHashSuffix(relKey: string): string {
   return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
 }
 
+/** Caminho absoluto seguro dentro de STORAGE_DIR (bloqueia path traversal). */
+export function storageLocalPath(key: string): string {
+  const safe = normalizeKey(key).replace(/\.\.(\/|\\|$)/g, "");
+  const full = path.resolve(STORAGE_DIR, safe);
+  if (!full.startsWith(path.resolve(STORAGE_DIR))) {
+    throw new Error("Invalid storage key");
+  }
+  return full;
+}
+
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
-  contentType = "application/octet-stream",
+  _contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
   const key = appendHashSuffix(normalizeKey(relKey));
-
-  // 1. Get presigned PUT URL from Forge
-  const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
-  presignUrl.searchParams.set("path", key);
-
-  const presignResp = await fetch(presignUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
-  });
-
-  if (!presignResp.ok) {
-    const msg = await presignResp.text().catch(() => presignResp.statusText);
-    throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
-  }
-
-  const { url: s3Url } = (await presignResp.json()) as { url: string };
-  if (!s3Url) throw new Error("Forge returned empty presign URL");
-
-  // 2. PUT file directly to S3
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
-
-  const uploadResp = await fetch(s3Url, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body: blob,
-  });
-
-  if (!uploadResp.ok) {
-    throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
-  }
-
+  const full = storageLocalPath(key);
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  const buf = typeof data === "string" ? Buffer.from(data, "utf-8") : Buffer.from(data as any);
+  fs.writeFileSync(full, buf);
   return { key, url: `/manus-storage/${key}` };
 }
 
@@ -81,22 +57,18 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
   return { key, url: `/manus-storage/${key}` };
 }
 
+/** URL absoluta servida pelo próprio servidor (p/ fetch interno funcionar). */
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
   const key = normalizeKey(relKey);
+  return `${SELF_BASE}/manus-storage/${key}`;
+}
 
-  const getUrl = new URL("v1/storage/presign/get", forgeUrl + "/");
-  getUrl.searchParams.set("path", key);
-
-  const resp = await fetch(getUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
-  });
-
-  if (!resp.ok) {
-    const msg = await resp.text().catch(() => resp.statusText);
-    throw new Error(`Storage signed URL failed (${resp.status}): ${msg}`);
+/** Lê os bytes do arquivo direto do disco (sem round-trip HTTP). null se não existir. */
+export async function storageReadBuffer(relKey: string): Promise<Buffer | null> {
+  try {
+    const full = storageLocalPath(relKey);
+    return fs.existsSync(full) ? fs.readFileSync(full) : null;
+  } catch {
+    return null;
   }
-
-  const { url } = (await resp.json()) as { url: string };
-  return url;
 }

@@ -133,3 +133,6 @@ query_db_mysql.js
 search_db_for_n8n.cjs
 update_campaign_period.js
 update_proposal_content_type.js
+
+# Storage local (migração do Manus) — arquivos gerados/enviados, não versionar
+local_storage/
