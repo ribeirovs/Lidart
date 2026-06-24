@@ -113,6 +113,11 @@ temp/
 client/public/__manus__/version.json
 .project-config.json
 
+# Fotos do inventário de mockup (assets pesados — não versionar; manifesto/README ficam)
+mockup_inventory/*.png
+mockup_inventory/*.jpg
+mockup_inventory/*.jpeg
+
 # Scratch / local debugging (not part of source)
 scratch/
 backups/
