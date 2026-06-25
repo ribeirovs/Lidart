@@ -1169,6 +1169,18 @@ ${proposal.proposalContent}`;
           }
         }
 
+        // Aeroportos com NOME PRÓPRIO (≠ cidade-mãe) ficam numa praça separada e não apareciam
+        // sob a cidade do briefing. Traz a praça do aeroporto quando a cidade-mãe está no briefing.
+        // (A maioria dos aeroportos usa o nome da própria cidade e já aparece sob ela.)
+        const norm2 = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+        const AERO_CIDADE_MAE: Record<string, string> = { "santos dumont": "rio de janeiro" };
+        const pracasN = new Set(pracas.map(norm2));
+        const aeroPracas = Array.from(new Set(catalog.filter((r) => /aeroporto/i.test(r.vertical)).map((r) => r.cidade)));
+        for (const ap of aeroPracas) {
+          const mae = AERO_CIDADE_MAE[norm2(ap)];
+          if (mae && pracasN.has(norm2(mae)) && !pracasN.has(norm2(ap))) { pracas.push(ap); pracasN.add(norm2(ap)); }
+        }
+
         const cidadeAlvo = input.cidade || pracas[0] || "";
         const options = cidadeAlvo ? listCotaOptions(catalog, cidadeAlvo, input.termo) : [];
         return { pracas, cidadeAlvo, options, semCatalogo: false };
