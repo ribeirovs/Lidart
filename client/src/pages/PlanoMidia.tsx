@@ -158,6 +158,13 @@ export default function PlanoMidia() {
                         {o.nome}{o.ehCircuito && <span className="ml-1 text-[10px] text-primary">circuito</span>}
                       </div>
                       <div className="text-muted-foreground truncate">{o.local} · {o.cota}/{o.veiculacao} · <span className="font-semibold">{brl(o.custoUnitario)}</span></div>
+                      {(o.insPorDia > 0 || (o.codigo && !/nao informado/i.test(o.codigo))) && (
+                        <div className="text-[10px] text-muted-foreground/80 truncate">
+                          {o.insPorDia > 0 ? `${o.insPorDia.toLocaleString("pt-BR")} ins/dia` : ""}
+                          {o.insPorDia > 0 && o.codigo && !/nao informado/i.test(o.codigo) ? " · " : ""}
+                          {o.codigo && !/nao informado/i.test(o.codigo) ? o.codigo : ""}
+                        </div>
+                      )}
                       {rec && <div className="text-[10px] text-primary/80 truncate mt-0.5">{motivo}</div>}
                     </div>
                     <Button size="sm" variant="outline" disabled={jaNoPlano(o.chave)} onClick={() => adicionar(o)} className="shrink-0 h-7 px-2">

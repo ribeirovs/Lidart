@@ -29,6 +29,8 @@ export interface CatalogRow {
   nome: string;
   /** Nome do arquivo da foto do ponto (coluna "IMAGEM DO PRODUTO"), p/ casar com o inventário de mockup. */
   imagem: string;
+  /** Código do produto (coluna "CODIGO DO PRODUTO") — desambigua versões com mesmo nome/cota. */
+  codigo: string;
   /** Inserções por dia (coluna "INS POR DIA" da tabela). */
   insPorDia: number;
   /** Impacto estimado por inserção/dia (coluna "IMPACTO ESTIMADO" da tabela). */
@@ -128,6 +130,7 @@ export async function loadFullCatalog(userId: number): Promise<CatalogRow[]> {
     vertical: findCol(["vertical"], 3),
     local: findCol(["local"], 4),
     nome: findCol(["nome comercial", "nome"], 6),
+    codigo: findCol(["codigo do produto", "codigo"], -1),
     imagem: findCol(["imagem do produto", "imagem"], -1),
     insPorDia: findCol(["ins por dia", "insercoes por dia"], -1),
     impactoEstimado: findCol(["impacto estimado"], -1),
@@ -155,6 +158,7 @@ export async function loadFullCatalog(userId: number): Promise<CatalogRow[]> {
       vertical: cell(v, ix.vertical),
       local: cell(v, ix.local),
       nome: cell(v, ix.nome),
+      codigo: cell(v, ix.codigo),
       imagem: cell(v, ix.imagem),
       insPorDia: parseMoney(cell(v, ix.insPorDia)),
       impactoEstimado: parseMoney(cell(v, ix.impactoEstimado)),
@@ -205,10 +209,21 @@ export interface CotaOption {
   faces: number;
   custoUnitario: number;
   ehCircuito: boolean;
+  /** Volume (inserções/dia) e código — distinguem versões de mesmo nome/cota com preços diferentes. */
+  insPorDia: number;
+  codigo: string;
+  impactoEstimado: number;
   rotulo: string;       // legível p/ o seletor
 }
 
+// Identidade do produto. Inclui INS POR DIA e CÓDIGO porque a tabela tem o MESMO
+// nome/local/cota/veiculação repetido em várias linhas (tiers de volume / variantes de
+// código), com preços diferentes — sem isso o seletor não distingue e pega "a primeira".
 function optKey(r: CatalogRow): string {
+  return [norm(r.cidade), norm(r.nome), norm(r.local), norm(r.cota), norm(r.veiculacao), String(r.insPorDia || 0), norm(r.codigo)].join("|");
+}
+// Chave ANTIGA (5 campos) — fallback p/ planos salvos antes da granularidade.
+function optKeyBase(r: CatalogRow): string {
   return [norm(r.cidade), norm(r.nome), norm(r.local), norm(r.cota), norm(r.veiculacao)].join("|");
 }
 
@@ -230,10 +245,13 @@ export function listCotaOptions(catalog: CatalogRow[], cidade: string, termo?: s
     const k = optKey(r);
     if (porChave.has(k)) continue;
     const ehCircuito = isCircuito(r.nome, r.local);
+    const vol = r.insPorDia > 0 ? ` · ${r.insPorDia.toLocaleString("pt-BR")} ins/dia` : "";
+    const cod = r.codigo && !/nao informado/.test(norm(r.codigo)) ? ` · ${r.codigo}` : "";
     porChave.set(k, {
       chave: k, cidade: r.cidade, uf: r.uf, vertical: r.vertical, nome: r.nome, local: r.local,
       cota: r.cota, veiculacao: r.veiculacao, faces: r.faces, custoUnitario: r.custoUnitario, ehCircuito,
-      rotulo: `${r.nome}${r.local && norm(r.local) !== norm(r.nome) ? ` · ${r.local}` : ""} — ${r.cota}/${r.veiculacao} — R$ ${r.custoUnitario.toLocaleString("pt-BR")}`,
+      insPorDia: r.insPorDia, codigo: r.codigo, impactoEstimado: r.impactoEstimado,
+      rotulo: `${r.nome}${r.local && norm(r.local) !== norm(r.nome) ? ` · ${r.local}` : ""} — ${r.cota}/${r.veiculacao}${vol}${cod} — R$ ${r.custoUnitario.toLocaleString("pt-BR")}`,
     });
   }
   return Array.from(porChave.values()).sort((a, b) =>
@@ -245,7 +263,9 @@ export function listCotaOptions(catalog: CatalogRow[], cidade: string, termo?: s
  * Casamento por identidade (chave), garantindo ZERO ambiguidade.
  */
 export function resolveFromOption(catalog: CatalogRow[], chave: string, campanhaSemanas: number): ResolveResult {
-  const row = catalog.find((r) => optKey(r) === chave);
+  // Chave nova (granular: inclui volume+código). Fallback: chave ANTIGA (5 campos) p/ planos
+  // salvos antes da granularidade — aí cai na 1ª linha que casa (comportamento de antes).
+  const row = catalog.find((r) => optKey(r) === chave) || catalog.find((r) => optKeyBase(r) === chave);
   if (!row) return { status: "sem_lastro", pedido: { cidade: "", produto: chave, cota: "", veiculacao: "", campanhaSemanas }, motivo: `Opção "${chave}" não existe mais na tabela` };
   const periodos = periodMultiplier(row.veiculacao, campanhaSemanas);
   const subtotal = Math.round(row.custoUnitario * periodos * 100) / 100;
