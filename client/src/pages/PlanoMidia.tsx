@@ -21,6 +21,7 @@ export default function PlanoMidia() {
   const id = Number(params?.id);
 
   const [cidade, setCidade] = useState<string>("");
+  const [filtroPraca, setFiltroPraca] = useState<string>("");
   const [termo, setTermo] = useState<string>("");
   const [buscaAtiva, setBuscaAtiva] = useState<string>("");
   const [linhas, setLinhas] = useState<Linha[]>([]);
@@ -62,6 +63,8 @@ export default function PlanoMidia() {
   }, [planoSalvo.data, carregouPlano]);
 
   const pracas: string[] = optionsQuery.data?.pracas || [];
+  const normP = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  const pracasView = filtroPraca.trim() ? pracas.filter((p) => normP(p).includes(normP(filtroPraca))) : pracas;
   const options = optionsQuery.data?.options || [];
   const jaNoPlano = (chave: string) => linhas.some((l) => l.chave === chave);
 
@@ -121,13 +124,16 @@ export default function PlanoMidia() {
           {/* ESQUERDA: catálogo */}
           <Card className="p-5 border border-border/50 bg-white/60">
             <h3 className="font-semibold text-foreground mb-3">Catálogo da praça</h3>
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {pracas.map((p) => (
+            <Input value={filtroPraca} onChange={(e) => setFiltroPraca(e.target.value)}
+              placeholder="Buscar praça (ex.: Santos Dumont, Rio, aeroporto)" className="text-sm mb-2" />
+            <div className="flex flex-wrap gap-1.5 mb-3 max-h-32 overflow-y-auto">
+              {pracasView.map((p) => (
                 <button key={p} onClick={() => { setCidade(p); }}
                   className={`px-2.5 py-1 text-xs rounded-full border transition ${cidade === p ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
                   {p}
                 </button>
               ))}
+              {pracasView.length === 0 && <span className="text-xs text-muted-foreground py-1">Nenhuma praça encontrada.</span>}
             </div>
             <div className="flex gap-2 mb-3">
               <Input value={termo} onChange={(e) => setTermo(e.target.value)} placeholder="Filtrar produto (ex.: banca, painel, aeroporto)"
