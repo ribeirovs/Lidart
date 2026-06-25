@@ -1096,7 +1096,9 @@ ${resourcesContext ? `DADOS DE INVENTÁRIO DE SUPORTE:\n${resourcesContext}` : "
 
         const systemPrompt = `Você é um consultor especialista em planejamento comercial e mídia OOH. Sua tarefa é revisar a proposta comercial de OOH a seguir, aplicando as alterações solicitadas pelo usuário.
         
-IMPORTANTE: Altere APENAS a seção correspondente à etapa "${input.stage}" (ex: se for 'idea_central', altere a Ideia Central/Conceito; se for 'valuation', altere a tabela de custos/valoração; se for 'proposal_final', faça a alteração solicitada de forma integrada). Mantenha as outras seções da proposta e sua estrutura de Markdown intactas. Retorne a proposta inteira, atualizada.`;
+IMPORTANTE: Altere APENAS a seção correspondente à etapa "${input.stage}" (ex: se for 'idea_central', altere a Ideia Central/Conceito; se for 'valuation', altere a tabela de custos/valoração; se for 'proposal_final', faça a alteração solicitada de forma integrada). Mantenha as outras seções da proposta e sua estrutura de Markdown intactas. Retorne a proposta inteira, atualizada.
+
+⭐ REGRA Nº 1 — NÚMEROS COM LASTRO (inviolável): NÃO invente nenhum número. Todo número vem do PLANO/Tabela real, de FONTE pública citada na frase, ou é ESTIMATIVA com a base explícita (premissa/cálculo em 1 linha, ex.: "alcance ~X — base: inserções/dia do plano × dias"). Número sem fonte e sem base é PROIBIDO — a exportação trava nele. Na dúvida, escreva qualitativo.`;
 
         const userPrompt = `Instrução de ajuste do usuário: "${input.instruction}"
 
@@ -1223,10 +1225,18 @@ REGRAS:
 - Escolha SOMENTE entre os NÚMEROS da lista. NUNCA invente opção.
 - TAMANHOS: se o MESMO formato aparece em tamanhos diferentes (ex.: "… - M" e "… - G"), recomende APENAS UM tamanho por praça — nunca os dois.
 - Conjunto ENXUTO e coerente (em geral 3 a 8 opções).
-- Motivo curto (1 linha), específico — diga qual diretriz pesou (ex.: "briefing pediu", "pesquisa indica", "serve à ideia").
+- Motivo curto (1 linha), QUALITATIVO — diga qual diretriz pesou (ex.: "briefing pediu este formato", "alta circulação do público-alvo", "serve à ideia"). REGRA Nº 1: NÃO cite número nem estatística no motivo (nada de "67%", "3x mais", "2 mi") — só justificativa qualitativa.
 - Responda APENAS com JSON, sem cercas de código: {"recomendadas":[{"n":<número da opção>,"motivo":"..."}]}`;
         const userMsg = `BRIEFING:\n${brief}\n\nPESQUISA DE MERCADO:\n${pesquisa || "(sem pesquisa registrada)"}\n\nIDEIA CRIATIVA:\n${ideia || "(sem ideia registrada)"}\n\nPRAÇA: ${input.cidade}\n\nOPÇÕES DISPONÍVEIS (escolha pelos números):\n${lista}`;
 
+        // REGRA Nº 1 (trava dura): remove qualquer número/estatística do motivo (é justificativa
+        // qualitativa; número ali seria benchmark inventado). Sobra só o texto.
+        const scrubMotivo = (s: string) => s
+          .replace(/\b\d+([.,]\d+)?\s*%/g, "")
+          .replace(/\b\d+([.,]\d+)?\s*(mi|mil|milh[õo]es|bi|k)\b/gi, "")
+          .replace(/\b\d+([.,]\d+)?\s*(vez(?:es)?|x)\b/gi, "")
+          .replace(/\bcagr\b/gi, "")
+          .replace(/\s{2,}/g, " ").replace(/\s+([.,;:])/g, "$1").replace(/^[\s,;:.-]+/, "").trim();
         let recomendadas: Array<{ chave: string; motivo: string }> = [];
         try {
           const resp = await invokeLLM({ messages: [{ role: "system", content: sys }, { role: "user", content: userMsg }], maxTokens: 1500, temperature: 0.4 });
@@ -1252,7 +1262,7 @@ REGRAS:
                   if (formatosBase.has(baseFmt)) continue; // já recomendou outro tamanho desse formato
                   vistos.add(chave);
                   formatosBase.add(baseFmt);
-                  recomendadas.push({ chave, motivo: String(r?.motivo || "").slice(0, 160) });
+                  recomendadas.push({ chave, motivo: scrubMotivo(String(r?.motivo || "")).slice(0, 160) });
                   if (recomendadas.length >= 12) break;
                 }
               }
