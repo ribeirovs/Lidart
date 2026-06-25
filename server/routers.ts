@@ -1169,18 +1169,19 @@ ${proposal.proposalContent}`;
           }
         }
 
-        // TODAS as praças do catálogo ficam acessíveis (Vivi: a lista deve contemplar todos os
-        // formatos de todas as praças). As do briefing vêm primeiro; o resto (inclui aeroportos
-        // de nome próprio, como "Santos Dumont", e qualquer praça do catálogo) vem em seguida,
-        // em ordem alfabética. Assim nenhuma praça/formato fica inacessível no seletor.
+        // Praças do seletor = SÓ as do briefing (Vivi). Mas cada praça contempla TODOS os seus
+        // formatos, INCLUINDO o aeroporto da cidade. A maioria dos aeroportos já usa o nome da
+        // própria cidade e entra direto (mesmaCidade); os de NOME PRÓPRIO (ex.: "Santos Dumont"
+        // = aeroporto do Rio) entram por este mapa cidade→aeroportos, mesclados nas opções.
         const norm2 = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-        const pracasN = new Set(pracas.map(norm2));
-        const todasPracas = Array.from(new Set(catalog.map((r) => r.cidade).filter(Boolean)));
-        const extras = todasPracas.filter((p) => !pracasN.has(norm2(p))).sort((a, b) => a.localeCompare(b, "pt"));
-        pracas = [...pracas, ...extras];
-
+        const CIDADE_AEROPORTOS: Record<string, string[]> = {
+          "rio de janeiro": ["Santos Dumont"],
+        };
         const cidadeAlvo = input.cidade || pracas[0] || "";
-        const options = cidadeAlvo ? listCotaOptions(catalog, cidadeAlvo, input.termo) : [];
+        let options = cidadeAlvo ? listCotaOptions(catalog, cidadeAlvo, input.termo) : [];
+        for (const ap of CIDADE_AEROPORTOS[norm2(cidadeAlvo)] || []) {
+          options = options.concat(listCotaOptions(catalog, ap, input.termo));
+        }
         return { pracas, cidadeAlvo, options, semCatalogo: false };
       }),
 
