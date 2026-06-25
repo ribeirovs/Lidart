@@ -97,17 +97,33 @@ export async function generateMockupSlides(
     });
   }
 
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const out: MockupSlide[] = [];
-  for (const e of escolhidos) {
+  for (let i = 0; i < escolhidos.length; i++) {
+    const e = escolhidos[i];
+    let buf: Buffer;
     try {
-      const buf = fs.readFileSync(path.join(dir, e.photo.arquivo));
-      const mime = mimeFromExt(e.photo.arquivo);
-      const prompt = buildMockupPrompt(e.formato, e.local, criativo);
-      const res = await swapAdOnPhoto(buf.toString("base64"), mime, prompt);
-      out.push({ b64: res.b64, mime: res.mime, formato: e.formato, local: e.local });
-    } catch {
-      // pula este item; não derruba o deck
+      buf = fs.readFileSync(path.join(dir, e.photo.arquivo));
+    } catch (err: any) {
+      console.warn(`[mockup] não leu ${e.photo.arquivo}: ${err?.message || err}`);
+      continue;
     }
+    const mime = mimeFromExt(e.photo.arquivo);
+    const prompt = buildMockupPrompt(e.formato, e.local, criativo);
+    // nano-banana é não-determinístico e tem rate limit → retenta com backoff (não engole a falha).
+    let ok = false;
+    for (let tent = 1; tent <= 3 && !ok; tent++) {
+      try {
+        const res = await swapAdOnPhoto(buf.toString("base64"), mime, prompt);
+        out.push({ b64: res.b64, mime: res.mime, formato: e.formato, local: e.local });
+        ok = true;
+      } catch (err: any) {
+        console.warn(`[mockup] ${e.formato}·${e.local} tentativa ${tent}/3 falhou: ${err?.message || err}`);
+        if (tent < 3) await sleep(2000 * tent);
+      }
+    }
+    if (!ok) console.warn(`[mockup] DESISTIU de ${e.formato}·${e.local} após 3 tentativas`);
+    if (i < escolhidos.length - 1) await sleep(1200); // espaça p/ evitar rate limit
   }
   return out;
 }
