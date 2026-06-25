@@ -59,8 +59,8 @@ PENSE COMO ESTRATEGISTA, NÃO PREENCHA MODELO:
 
 FIDELIDADE (CRÍTICO — não pode violar):
 - Use SOMENTE praças/formatos do PLANO VALIDADO abaixo. PROIBIDO citar praça, formato, ambiente ou ponto de contato fora do plano.
-- NÃO invente valores de investimento (os números de verba são preenchidos pelo sistema a partir do plano — não os repita).
-- Toda PROJEÇÃO de resultado (ROI, alcance, frequência, conversão, vendas, uplift) deve ser plausível e rotulada como estimativa no texto de apoio. Não apresente número de resultado como fato absoluto.
+- NÚMEROS — REGRA DE OURO, ZERO INVENÇÃO (a mais importante): é TERMINANTEMENTE PROIBIDO inventar qualquer número. Todo número (alcance, impactos, pessoas, frequência, cobertura, %, VTR, CTR, CPM, ROI, uplift, conversão, vendas, audiência) só pode aparecer se estiver EXPLÍCITO no BRIEFING abaixo ou vier do PLANO VALIDADO. Não há fonte real? NÃO escreva o número — descreva de forma QUALITATIVA, sem cifra, ou OMITA o campo. NUNCA preencha "meta"/"projecao" com número que o briefing não deu. NUNCA rotule invenção como "estimativa" — estimativa sem base real continua proibida. Prefira SEMPRE o campo vazio a um número falso. Os números nos exemplos do schema são só ILUSTRAÇÃO de formato — não os copie.
+- Os valores de investimento são preenchidos pelo sistema a partir do plano — não os repita nem invente.
 - Não use linguagem de exclusão/sacrifício ("abrimos mão", "trade-off", "ficou de fora").
 
 FORMATO DE SAÍDA — responda APENAS com JSON válido (sem markdown, sem \`\`\`, sem comentários), exatamente neste schema (omita campos sem conteúdo real; arrays podem ter menos itens):
@@ -127,6 +127,97 @@ function extractJson(text: string): any {
   throw new Error("JSON incompleto na resposta da IA");
 }
 
+// ── TRAVA: ZERO número inventado ──────────────────────────────────────────────
+// Princípio (Vivi): nenhum número pode ir ao cliente sem fonte. Toda cifra do deck
+// tem que vir do BRIEFING (explícito) ou do PLANO (motor/tabela de preços real).
+// Este filtro REMOVE deterministicamente qualquer número que não case com essas
+// fontes — é a garantia programada, além da instrução no prompt.
+function parseNum(raw?: string): number | null {
+  if (raw == null) return null;
+  let s = String(raw).toLowerCase().replace(/×/g, " ").replace(/r\$/g, " ");
+  let mult = 1;
+  if (/(milh[õo]es|\bmi\b|\bmm\b)/.test(s)) mult = 1e6;
+  else if (/(\bmil\b|\bk\b)/.test(s)) mult = 1e3;
+  s = s.replace(/[^\d.,]/g, "");
+  if (!s) return null;
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n * mult : null;
+}
+
+function briefingNumbers(br: any): Set<number> {
+  const set = new Set<number>();
+  const add = (v: any) => { if (typeof v === "number" && Number.isFinite(v)) set.add(Math.round(v)); };
+  let corpus = [br?.objective, br?.targetAudience, br?.mediaSpecs, br?.campaignPeriod, br?.budget, br?.segment, br?.kpis]
+    .filter(Boolean).join("  ");
+  // remove faixas DEMOGRÁFICAS (idade) p/ não validarem KPIs por coincidência (ex.: "18-55 anos" não autoriza "VTR 55%").
+  corpus = corpus.replace(/\d+\s*[-–a]+\s*\d+\s*anos/gi, " ").replace(/\d+\s*anos/gi, " ");
+  for (const m of Array.from(corpus.matchAll(/(\d[\d.,]*)\s*(milh[õo]es|mi|mil|k|%)?/gi))) {
+    const v = parseNum(`${m[1]} ${m[2] || ""}`); if (v !== null) add(v);
+  }
+  return set;
+}
+
+function planNumbers(plano: PlanoResolvido): Set<number> {
+  const set = new Set<number>();
+  const add = (v: any) => { if (typeof v === "number" && Number.isFinite(v)) set.add(Math.round(v)); };
+  for (const it of plano.itens || []) {
+    add(it.custoUnitario); add(it.subtotal); add((it as any).periodos);
+    add(it.qtd); add(it.insPorDia); add(it.impactoEstimado);
+  }
+  for (const g of plano.porPraca || []) add(g.subtotal);
+  add(plano.totalVeiculacao); add((plano.porPraca || []).length); add((plano.itens || []).length);
+  add((plano.itens || []).reduce((s, it) => s + (it.impactoEstimado || 0) * ((it as any).periodos || 1) * (it.qtd || 1), 0));
+  add((plano.itens || []).reduce((s, it) => s + (it.insPorDia || 0), 0));
+  return set;
+}
+
+export function scrubUnsourcedNumbers(content: DeckContent, br: any, plano: PlanoResolvido): DeckContent {
+  const briefSet = briefingNumbers(br);
+  const planSet = planNumbers(plano);
+  const removed: string[] = [];
+  const inSet = (set: Set<number>, v: number) => {
+    for (const a of Array.from(set)) if (Math.abs(a - v) <= Math.max(1, Math.abs(v) * 0.02)) return true;
+    return false;
+  };
+  // Extrai TODOS os números do texto (trata faixas "1–2", "3,0–3,2 mi") e exige que CADA um tenha fonte.
+  // briefOnly=true: só o briefing autoriza (p/ a coluna "meta de briefing").
+  const okIn = (raw: string | undefined, unidade: string | undefined, briefOnly: boolean): boolean => {
+    const text = `${raw ?? ""} ${unidade ?? ""}`;
+    const toks = Array.from(text.matchAll(/(\d[\d.,]*)\s*(milh[õo]es|mi|mil|k|%)?/gi));
+    if (toks.length === 0) return true;                // sem número → texto qualitativo, mantém
+    for (const t of toks) {
+      const v = parseNum(`${t[1]} ${t[2] || ""}`);
+      if (v === null) continue;
+      if (Number.isInteger(v) && v >= 1990 && v <= 2100) continue; // ano
+      if (inSet(briefSet, v)) continue;
+      if (!briefOnly && inSet(planSet, v)) continue;
+      return false;                                    // este número não tem fonte → reprova
+    }
+    return true;
+  };
+  const ok = (raw?: string, unidade?: string) => okIn(raw, unidade, false);
+  const filt = (arr: any, numKey = "num", uKey = "unidade") =>
+    Array.isArray(arr) ? arr.filter((x: any) => { const k = ok(x?.[numKey], x?.[uKey]); if (!k) removed.push(`${x?.[numKey]}`); return k; }) : arr;
+  const c: any = content;
+  if (c.visaoGeral) c.visaoGeral.stats = filt(c.visaoGeral.stats);
+  if (c.desafio) { c.desafio.stats = filt(c.desafio.stats); c.desafio.consumidor = filt(c.desafio.consumidor); }
+  if (c.metricas) { c.metricas.stats = filt(c.metricas.stats); c.metricas.conversao = filt(c.metricas.conversao, "valor"); }
+  if (Array.isArray(c.pilares)) c.pilares.forEach((p: any) => { if (p) p.stats = filt(p.stats); });
+  if (c.objetivos && Array.isArray(c.objetivos.linhas)) {
+    c.objetivos.linhas = c.objetivos.linhas.filter((l: any) => {
+      if (!l) return false;
+      if (!okIn(l.meta, undefined, true)) { removed.push(`meta:${l.meta}`); return false; } // meta de briefing só do briefing
+      if (!ok(l.projecao)) { removed.push(`proj:${l.projecao}`); l.projecao = ""; }
+      return true;
+    });
+  }
+  if (c.roi && !ok(c.roi.numero, c.roi.unidade)) { removed.push(`roi:${c.roi.numero}`); delete c.roi; }
+  if (removed.length) console.warn(`[deck] ${removed.length} número(s) SEM FONTE removido(s):`, removed.slice(0, 25).join(" | "));
+  return content;
+}
+
 /** Gera só o CONTEÚDO estruturado do deck (sem renderizar). */
 export async function generateDeckContent(p: DeckProposalInput, opts?: { model?: string }): Promise<DeckContent> {
   if (!ENV.anthropicApiKey) throw new Error("ANTHROPIC_API_KEY não configurada");
@@ -148,7 +239,8 @@ export async function generateDeckContent(p: DeckProposalInput, opts?: { model?:
   const text = (resp.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("");
   const content = extractJson(text) as DeckContent;
   if (!content || typeof content !== "object") throw new Error("Conteúdo do deck inválido");
-  return content;
+  // TRAVA programada: remove qualquer número sem fonte (briefing/plano) antes de renderizar.
+  return scrubUnsourcedNumbers(content, br, plano);
 }
 
 /** Gera o deck completo (conteúdo Opus + render determinístico) e devolve o Buffer (.pptx). */
