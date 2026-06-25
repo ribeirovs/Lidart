@@ -1,9 +1,11 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
-import type { Express, Request, Response } from "express";
+import express, { type Express, type Request, type Response } from "express";
+import { parse as parseCookieHeader } from "cookie";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 import { ENV } from "./env";
+import { hashPassword, verifyPassword, isPasswordAcceptable } from "./password";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -79,6 +81,45 @@ export function registerOAuthRoutes(app: Express) {
     } catch (error) {
       console.error("[DevAuth] Failed", error);
       res.status(500).send("Dev login failed");
+    }
+  });
+
+  // ── Login INTERNO (e-mail + senha) — substitui o login do Manus ──────────────
+  const jsonBody = express.json();
+
+  app.post("/api/auth/login", jsonBody, async (req: Request, res: Response) => {
+    try {
+      const email = String(req.body?.email ?? "").trim().toLowerCase();
+      const password = String(req.body?.password ?? "");
+      if (!email || !password) { res.status(400).json({ error: "Informe e-mail e senha." }); return; }
+      const user = await db.getUserByEmail(email);
+      // verifica sempre (mesmo sem user) p/ tempo ~constante; nunca revela qual campo falhou
+      const ok = verifyPassword(password, user?.passwordHash ?? "scrypt$00$00");
+      if (!user || !user.passwordHash || !ok) { res.status(401).json({ error: "E-mail ou senha inválidos." }); return; }
+      const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || email, expiresInMs: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(req), maxAge: ONE_YEAR_MS });
+      await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+      res.json({ success: true, name: user.name, role: user.role });
+    } catch (error) {
+      console.error("[Auth] login falhou", error);
+      res.status(500).json({ error: "Falha no login." });
+    }
+  });
+
+  // Define a própria senha (precisa estar logado — ex.: entrou pelo dev-login).
+  app.post("/api/auth/set-password", jsonBody, async (req: Request, res: Response) => {
+    try {
+      const session = await sdk.verifySession(parseCookieHeader(req.headers.cookie || "")[COOKIE_NAME]);
+      if (!session) { res.status(401).json({ error: "Faça login primeiro." }); return; }
+      const newPassword = String(req.body?.newPassword ?? "");
+      if (!isPasswordAcceptable(newPassword)) { res.status(400).json({ error: "A senha precisa ter ao menos 8 caracteres." }); return; }
+      const user = await db.getUserByOpenId(session.openId);
+      if (!user) { res.status(404).json({ error: "Usuário não encontrado." }); return; }
+      await db.setUserPassword(user.id, hashPassword(newPassword));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[Auth] set-password falhou", error);
+      res.status(500).json({ error: "Falha ao definir a senha." });
     }
   });
 }

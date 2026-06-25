@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, InsertProposal, InsertResource, InsertApproval, InsertBriefing, proposals, users, resources, approvals, briefings } from "../drizzle/schema";
@@ -87,6 +88,33 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+// ── Login interno (e-mail + senha) ────────────────────────────────────────────
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email.trim().toLowerCase())).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function setUserPassword(userId: number, passwordHash: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ passwordHash, loginMethod: "password" }).where(eq(users.id, userId));
+}
+
+/** Cria um usuário de login interno (openId gerado). Retorna o usuário criado. */
+export async function createLocalUser(data: { email: string; name?: string; passwordHash: string; role?: "user" | "admin" }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const email = data.email.trim().toLowerCase();
+  const openId = "local_" + crypto.randomUUID().replace(/-/g, "");
+  await db.insert(users).values({
+    openId, email, name: data.name ?? email, passwordHash: data.passwordHash,
+    role: data.role ?? "user", loginMethod: "password", lastSignedIn: new Date(),
+  });
+  return getUserByEmail(email);
 }
 
 export async function createProposal(data: InsertProposal) {
