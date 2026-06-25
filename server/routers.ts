@@ -772,6 +772,7 @@ ${listaBranca}
 - As palavras "trade-off" e "sacrifício" (em qualquer forma) são PROIBIDAS no texto. E NUNCA descreva uma praça do plano de forma minimizada ou negativa (ex.: "Natal representa apenas 0,6% do alcance", "menor alcance absoluto"): TODA praça do plano entra pelo papel POSITIVO que entrega (proximidade, frequência, contexto premium, fidelização), nunca pelo tamanho que não tem.
 - NÃO escreva a tabela de Plano de Veiculação nem a de Investimento — serão inseridas automaticamente do plano validado. NÃO invente preços, totais nem outras praças.
 - É PROIBIDO citar "Modelo Valoração Kallas" como fonte ou metodologia. A fonte de preço é a Tabela de Preços Kallas (plano validado).
+- ⭐ REGRA Nº 1 — NÚMEROS COM LASTRO (a mais importante): nenhum número vai ao cliente sem origem. Todo número vem de (a) PLANO/Tabela de Preços real, (b) FONTE pública real citada NA própria frase, ou (c) ESTIMATIVA com a LÓGICA explícita e LIMPA — a premissa e a base de onde saiu, em UMA linha (ex.: "alcance estimado ~X — base: inserções/dia do plano × dias de campanha; estimativa"). É PROIBIDO número "pelado" (sem fonte e sem mostrar a base). Na dúvida, escreva qualitativo, sem cifra. A lógica é LIMPA (premissa + resultado) — NÃO é rascunho: nada de "Correção:", duas versões do número ou valores intermediários soltos.
 
 Escreva TODAS as seções NARRATIVAS abaixo (sem tabela de preços) — use EXATAMENTE estes títulos em Markdown, nesta ordem:
 ## Sumário Executivo
@@ -779,7 +780,7 @@ Escreva TODAS as seções NARRATIVAS abaixo (sem tabela de preços) — use EXAT
 ## Defesa de Praça & Análise de Inventário
 (Argumento comportamental por praça: quem é o público, onde circula, por que os formatos do plano o interceptam. Cite os parceiros reais conforme o plano. SEM preços.)
 ## Insight de Mercado
-(A oportunidade não óbvia / tendência da categoria que sustenta a campanha. TODA estatística numérica — %, CAGR, "X% superior", "Y vezes mais" — exige FONTE REAL citada na própria frase OU rótulo explícito de "estimativa"/"hipótese". NUNCA apresente número (ou afirmação científica) sem lastro como fato — é material para o cliente.)
+(A oportunidade não óbvia / tendência da categoria que sustenta a campanha. TODA estatística numérica — %, CAGR, "X% superior", "Y vezes mais" — exige FONTE REAL citada na própria frase, OU, se estimativa, a BASE explícita (premissa de onde saiu) rotulada como estimativa/hipótese. Número sem fonte E sem base é PROIBIDO — é material para o cliente.)
 ## Conceito Criativo e Ideia Central
 (PRESERVE o mote e o conceito criativo já desenvolvidos no rascunho anterior. As ativações devem usar APENAS formatos da lista branca — não proponha mídia fora dela.)
 ## Jornada do Público
@@ -787,7 +788,7 @@ Escreva TODAS as seções NARRATIVAS abaixo (sem tabela de preços) — use EXAT
 ## Estratégia de Mídia
 (Racional POSITIVO: por que ESTE mix de praças e formatos do plano entrega o objetivo — priorização, concentração de impacto e sinergia entre os formatos escolhidos. Fale só do que está no plano e por que vence; sem comparar com alternativas não escolhidas.)
 ## Métricas e KPIs
-(Objetivos de alcance/frequência/ROI como ESTIMATIVAS baseadas em benchmarks — nunca invente instituto de pesquisa; deixe claro que são projeções. Mostre só o RESULTADO FINAL de cada KPI: UM número por métrica. NUNCA exiba cálculo rascunhado, valores intermediários, duas versões do mesmo número, "Correção:", "ajustar meta para…", "ou R$…". O raciocínio do cálculo fica FORA do texto entregue.)
+(Objetivos de alcance/frequência/ROI como ESTIMATIVAS — cada KPI: UM número final + a BASE em UMA linha limpa, ou seja a premissa/cálculo de onde saiu (ex.: "frequência ~4–6/sem — base: concentração do plano nas praças prioritárias"), rotulado como estimativa/projeção. REGRA Nº 1: número sem base é proibido. NUNCA invente instituto de pesquisa. A base é LIMPA (premissa + resultado), NUNCA rascunho: nada de valores intermediários soltos, duas versões do número, "Correção:", "ajustar meta para…", "ou R$…".)
 ## Cronograma e Condições Comerciais
 (${proposal.commercialTerms || "Padrão"}.)
 ## Fontes e Premissas

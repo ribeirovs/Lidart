@@ -440,10 +440,13 @@ export interface NarrativeCheck { flags: NarrativeFlag[]; ok: boolean; resumo: R
 // formato_fora_plano BLOQUEIA por decisão da Viviane (bloquear formato fora do plano).
 // ⚠️ Tem falso positivo com descrição CRIATIVA ("Painel Fotográfico", "Totens" da
 // ativação) → nesses casos o planner confirma "exportar mesmo assim".
-// preco_na_prosa e estatistica_sem_fonte seguem como AVISO (não bloqueiam; aparecem no painel).
+// REGRA Nº 1 (Vivi): número sem fonte NEM lógica explícita BLOQUEIA — na proposta,
+// toda estimativa tem que mostrar a premissa/cálculo (RE_FONTE aceita a derivação).
+// preco_na_prosa segue como AVISO (contexto/produção, não estatística inventada).
 export const NARRATIVE_BLOCKERS: NarrativeFlagTipo[] = [
   "praca_fora_plano", "formato_fora_plano", "ambiente_fora_plano",
   "linguagem_exclusao", "modelo_valoracao", "calculo_rascunhado",
+  "estatistica_sem_fonte",
 ];
 
 // Nomes de FORMATO OOH (raízes normalizadas) — usados só p/ marcar formato fora do plano.
@@ -461,8 +464,9 @@ const RE_EXCLUSAO = /sacrific|abrim[oa]s m[ãa]o|trade.?off|deixa(?:mos|ram|r) d
 // "ausência" só conta como exclusão quando perto de mercado/praça (evita falso positivo
 // criativo do tipo "ausência de call-to-action / de texto").
 const RE_AUSENCIA = /aus[êe]ncia[^.\n]{0,45}(mercado|pra[çc]a|capital|cobertura|regi[ãa]o|cidade)/i;
-// Lastro de estatística: fonte real OU rótulo explícito de estimativa.
-const RE_FONTE = /fonte|estimativa|hip[óo]tese|benchmark|segundo |de acordo com|ibge|kantar|ibope|nielsen|euromonitor|anac|ccsp|geofusion/i;
+// Lastro de estatística: fonte real, rótulo de estimativa OU derivação explícita
+// (premissa + cálculo). REGRA Nº 1: número pode aparecer na proposta se mostrar de onde saiu.
+const RE_FONTE = /fonte|estimativa|hip[óo]tese|benchmark|segundo |de acordo com|assumindo|premissa|com base|partindo de|considerando|c[áa]lculo|calcul|deriv|projetad|proje[çc][aã]o|a confirmar|ibge|kantar|ibope|nielsen|euromonitor|anac|ccsp|geofusion/i;
 // Estatística numérica (%, CAGR, "X vezes/superior/maior").
 const RE_ESTATISTICA = /\d+([.,]\d+)?\s*%|\bcagr\b|\d+([.,]\d+)?\s*(vez(?:es)?|x)\s+(mais|maior|superior)/i;
 // Ambientes/pontos de contato OOH fora do plano (raízes; metrô tratado por regex à parte).
@@ -520,7 +524,7 @@ export function verifyNarrativeAgainstPlan(narrative: string, plano: PlanoResolv
     // (c) estatística sem fonte — só na seção Insight de Mercado
     if (insightStart !== -1 && i > insightStart && i < insightEnd && !/^#{1,6}\s/.test(linha)
         && RE_ESTATISTICA.test(linha) && !RE_FONTE.test(linha))
-      add("estatistica_sem_fonte", i, "estatística sem fonte — citar fonte real ou marcar como estimativa/hipótese");
+      add("estatistica_sem_fonte", i, "número sem fonte NEM lógica — citar fonte real, OU mostrar a derivação (premissa + cálculo) e rotular como estimativa");
 
     // Demais checagens só na PROSA (antes do bloco do plano) e fora de títulos
     if (i >= planoStart) continue;
