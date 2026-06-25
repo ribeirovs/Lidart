@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { aiKeysSummary } from "./env";
 if (process.env.NODE_ENV) {
   process.env.NODE_ENV = process.env.NODE_ENV.trim();
 }
@@ -77,6 +78,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    console.log(aiKeysSummary());
   });
 }
 

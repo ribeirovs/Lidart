@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "",
   cookieSecret: process.env.JWT_SECRET ?? "",
@@ -18,3 +20,14 @@ export const ENV = {
   geminiApiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "",
   geminiImageModel: process.env.GEMINI_IMAGE_MODEL ?? "gemini-2.5-flash-image",
 };
+
+/**
+ * Resumo das chaves de IA no boot — SEM expor o valor. Mostra a "impressão digital"
+ * (sha256 curta) pra você confirmar QUAL conta está pagando: na produção da Kallas a
+ * fp tem que ser a da chave da Kallas, não a sua. Custo de IA = dono da chave.
+ */
+export function aiKeysSummary(): string {
+  const fp = (k: string) => (k ? crypto.createHash("sha256").update(k).digest("hex").slice(0, 8) : "");
+  const part = (name: string, k: string) => `${name}: ${k ? `OK (fp ${fp(k)})` : "⚠️ FALTANDO"}`;
+  return `[Config IA — quem paga] ${part("ANTHROPIC", ENV.anthropicApiKey)} · ${part("GEMINI", ENV.geminiApiKey)}`;
+}
