@@ -1169,17 +1169,15 @@ ${proposal.proposalContent}`;
           }
         }
 
-        // Aeroportos com NOME PRÓPRIO (≠ cidade-mãe) ficam numa praça separada e não apareciam
-        // sob a cidade do briefing. Traz a praça do aeroporto quando a cidade-mãe está no briefing.
-        // (A maioria dos aeroportos usa o nome da própria cidade e já aparece sob ela.)
+        // TODAS as praças do catálogo ficam acessíveis (Vivi: a lista deve contemplar todos os
+        // formatos de todas as praças). As do briefing vêm primeiro; o resto (inclui aeroportos
+        // de nome próprio, como "Santos Dumont", e qualquer praça do catálogo) vem em seguida,
+        // em ordem alfabética. Assim nenhuma praça/formato fica inacessível no seletor.
         const norm2 = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-        const AERO_CIDADE_MAE: Record<string, string> = { "santos dumont": "rio de janeiro" };
         const pracasN = new Set(pracas.map(norm2));
-        const aeroPracas = Array.from(new Set(catalog.filter((r) => /aeroporto/i.test(r.vertical)).map((r) => r.cidade)));
-        for (const ap of aeroPracas) {
-          const mae = AERO_CIDADE_MAE[norm2(ap)];
-          if (mae && pracasN.has(norm2(mae)) && !pracasN.has(norm2(ap))) { pracas.push(ap); pracasN.add(norm2(ap)); }
-        }
+        const todasPracas = Array.from(new Set(catalog.map((r) => r.cidade).filter(Boolean)));
+        const extras = todasPracas.filter((p) => !pracasN.has(norm2(p))).sort((a, b) => a.localeCompare(b, "pt"));
+        pracas = [...pracas, ...extras];
 
         const cidadeAlvo = input.cidade || pracas[0] || "";
         const options = cidadeAlvo ? listCotaOptions(catalog, cidadeAlvo, input.termo) : [];
