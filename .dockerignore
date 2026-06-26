@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+backups
+local_storage
+mockup_inventory
+temp_extract*
+*.log
+.env
+.env.*
+# scratch é pesado; só os assets de marca entram (referenciados no Dockerfile)
+scratch/*
+!scratch/pptx_extracted_media
