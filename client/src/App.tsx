@@ -12,11 +12,15 @@ import Resources from "./pages/ResourcesPage";
 import ResourcesNew from "./pages/ResourcesPageNew";
 import Briefing from "./pages/Briefing";
 import PlanoMidia from "./pages/PlanoMidia";
+import Login from "./pages/Login";
+import DefinirSenha from "./pages/DefinirSenha";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
+      <Route path={"/login"} component={Login} />
+      <Route path={"/definir-senha"} component={DefinirSenha} />
       <Route path={"/"} component={Home} />
       <Route path={"/create"} component={CreateProposal} />
       <Route path={"/proposals"} component={ProposalsList} />

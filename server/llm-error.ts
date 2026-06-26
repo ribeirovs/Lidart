@@ -40,7 +40,7 @@ export function classifyLLMError(err: unknown): LLMError {
   if (/402|412|429|quota|credit|usage.*exhaust|rate.*limit|precondition/i.test(errMsg)) {
     return new LLMError(
       "quota_exhausted",
-      "Créditos da IA esgotados. Recarregue sua conta Manus ou aguarde o reset do limite.",
+      "Créditos da IA esgotados. Recarregue a conta de API (Anthropic/Gemini) ou aguarde o reset do limite.",
       errMsg
     );
   }
