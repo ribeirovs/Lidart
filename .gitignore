@@ -136,3 +136,7 @@ update_proposal_content_type.js
 
 # Storage local (migração do Manus) — arquivos gerados/enviados, não versionar
 local_storage/
+
+# Scripts de teste/scratch soltos
+_*.mts
+_*.cjs
