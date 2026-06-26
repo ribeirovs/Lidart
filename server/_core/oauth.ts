@@ -16,8 +16,13 @@ export function registerOAuthRoutes(app: Express) {
   // (Removido) /api/oauth/callback — era a entrada do login OAuth do Manus.
   // O login agora é interno (e-mail+senha), abaixo.
 
-  // Local developer login backdoor
+  // Backdoor de bootstrap. GATEADO: só funciona em desenvolvimento OU se
+  // ENABLE_DEV_LOGIN=true. Em produção (demo público) fica DESLIGADO — senão
+  // qualquer um vira admin. Pra criar a senha do dono na 1ª vez no servidor de
+  // produção, ligue ENABLE_DEV_LOGIN=true, faça o bootstrap, e desligue.
+  const devLoginOn = process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "true";
   app.get("/api/auth/dev-login", async (req: Request, res: Response) => {
+    if (!devLoginOn) { res.status(404).send("Not found"); return; }
     try {
       const devOpenId = ENV.ownerOpenId || "dev-user";
 
