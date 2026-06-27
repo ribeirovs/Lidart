@@ -150,3 +150,7 @@ local_storage/
 # Scripts de teste/scratch soltos
 _*.mts
 _*.cjs
+
+# Scripts temporários de deploy (locais)
+deploy-railway.bat
+deploy-railway.vbs

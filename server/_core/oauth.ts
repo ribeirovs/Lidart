@@ -70,6 +70,31 @@ export function registerOAuthRoutes(app: Express) {
     }
   });
 
+  // ── Link de recuperação de emergência ─────────────────────────────────────────
+  // Acesse: /api/auth/recovery?secret=<JWT_SECRET>
+  // O JWT_SECRET está visível nas variáveis de ambiente do Railway.
+  // Gera uma sessão de admin sem precisar de senha. Mude sua senha depois.
+  app.get("/api/auth/recovery", async (req: Request, res: Response) => {
+    try {
+      const secret = getQueryParam(req, "secret");
+      if (!secret || secret !== ENV.cookieSecret) {
+        res.status(403).send("Segredo inválido.");
+        return;
+      }
+      const user = await db.getUserByOpenId(ENV.ownerOpenId || "");
+      if (!user) { res.status(404).send("Usuário não encontrado."); return; }
+      const sessionToken = await sdk.createSessionToken(user.openId, {
+        name: user.name || user.email || "Admin",
+        expiresInMs: ONE_YEAR_MS,
+      });
+      res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(req), maxAge: ONE_YEAR_MS });
+      res.redirect(302, "/");
+    } catch (error) {
+      console.error("[Auth] recovery falhou", error);
+      res.status(500).send("Falha na recuperação.");
+    }
+  });
+
   // Define a própria senha (precisa estar logado — ex.: entrou pelo dev-login).
   app.post("/api/auth/set-password", jsonBody, async (req: Request, res: Response) => {
     try {
