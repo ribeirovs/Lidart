@@ -2,7 +2,9 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm install --no-audit --no-fund
+# --legacy-peer-deps: o vite-plugin-jsx-loc/manus-runtime declaram peer vite@4||5,
+# mas o projeto roda vite 7 (igual ao pnpm/local, que é tolerante). Sem isso, npm 10 dá ERESOLVE.
+RUN npm install --legacy-peer-deps --no-audit --no-fund
 COPY . .
 RUN npx vite build \
  && npx esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
@@ -21,12 +23,16 @@ ENV PYTHON_CMD=python3
 
 # Dependências de runtime (o bundle do servidor é --packages=external)
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev --no-audit --no-fund
+RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund
 
 # Artefatos buildados + o que o runtime precisa
 COPY --from=build /app/dist ./dist
 COPY server/parse_file.py ./server/parse_file.py
 COPY scratch/pptx_extracted_media ./scratch/pptx_extracted_media
+# Template lido em runtime p/ a formatação Excel da Kallas (tem fallback).
+# (O mídia kit .pptx foi deixado de fora do demo p/ enxugar o upload — loadFormatImages
+#  cai no fallback []; os mockups reais vêm do mockup_inventory no volume.)
+COPY scratch/Modelo_ValoraAAo_Kallas.xlsx ./scratch/
 
 # Storage PERSISTENTE — monte um volume do host aqui (senão arquivos somem no deploy)
 ENV LOCAL_STORAGE_DIR=/data/storage

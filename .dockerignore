@@ -9,6 +9,13 @@ temp_extract*
 *.log
 .env
 .env.*
-# scratch é pesado; só os assets de marca entram (referenciados no Dockerfile)
+# scratch é pesado; só os 5 assets de marca + o template Excel que o runtime usa entram.
 scratch/*
-!scratch/pptx_extracted_media
+!scratch/pptx_extracted_media/
+scratch/pptx_extracted_media/*
+!scratch/pptx_extracted_media/image1.png
+!scratch/pptx_extracted_media/image2.jpeg
+!scratch/pptx_extracted_media/k_red.png
+!scratch/pptx_extracted_media/k_white.png
+!scratch/pptx_extracted_media/kallas_cover.png
+!scratch/Modelo_ValoraAAo_Kallas.xlsx

@@ -3,10 +3,17 @@ import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
-import { createServer as createViteServer } from "vite";
-import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, server: Server) {
+  // Imports dinâmicos: 'vite' e o vite.config (que puxa plugins devDependency) só
+  // existem em desenvolvimento. Carregar aqui dentro evita que a imagem de produção
+  // (npm install --omit=dev, sem vite) quebre no load com ERR_MODULE_NOT_FOUND.
+  const { createServer: createViteServer } = await import("vite");
+  // Especificador em VARIÁVEL de propósito: impede o esbuild de resolver/inline-ar o
+  // vite.config (que importa plugins devDependency) dentro do bundle de produção.
+  const viteConfigPath = "../../vite.config";
+  const viteConfig = (await import(viteConfigPath)).default;
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },

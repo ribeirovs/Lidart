@@ -119,7 +119,17 @@ mockup_inventory/*.jpg
 mockup_inventory/*.jpeg
 
 # Scratch / local debugging (not part of source)
-scratch/
+scratch/*
+# ...exceto os assets que o Dockerfile/runtime precisam (deploy via railway up usa .gitignore).
+# Só os 5 arquivos de marca de fato lidos em runtime (enxuga o upload de ~26MB p/ ~3MB).
+!scratch/pptx_extracted_media/
+scratch/pptx_extracted_media/*
+!scratch/pptx_extracted_media/image1.png
+!scratch/pptx_extracted_media/image2.jpeg
+!scratch/pptx_extracted_media/k_red.png
+!scratch/pptx_extracted_media/k_white.png
+!scratch/pptx_extracted_media/kallas_cover.png
+!scratch/Modelo_ValoraAAo_Kallas.xlsx
 backups/
 package-lock.json
 _t11.mts

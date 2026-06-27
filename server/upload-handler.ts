@@ -4,6 +4,8 @@ import { storagePut } from "./storage";
 import { getDb } from "./db";
 import { resources } from "../drizzle/schema";
 import { sdk } from "./_core/sdk";
+import { inventoryDir } from "./mockup-inventory";
+import { Jimp } from "jimp";
 import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
@@ -91,6 +93,82 @@ router.post("/upload-resource", upload.single("file"), async (req: any, res: Res
     debugLog(`Upload error caught in handler: ${error.stack || error.message || error}`);
     console.error("Upload error:", error);
     return res.status(500).json({ error: "Failed to upload file" });
+  }
+});
+
+// Upload de FOTO de mockup p/ o inventário (MOCKUP_INVENTORY_DIR). O motor de mockup
+// auto-descobre qualquer imagem na pasta (casamento exato por nome de arquivo = coluna
+// IMAGEM DO PRODUTO). Recurso do produto: cada cliente carrega o próprio acervo.
+// Admin-only. Grava direto no volume persistente, sem passar por resources/DB.
+router.post("/upload-mockup", upload.single("file"), async (req: any, res: Response) => {
+  try {
+    const file = req.file as Express.Multer.File | undefined;
+    if (!file) return res.status(400).json({ error: "No file provided" });
+
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    if (!user || (user as any).role !== "admin") {
+      return res.status(403).json({ error: "Forbidden — admin only" });
+    }
+
+    const safe = path.basename(file.originalname); // bloqueia path traversal
+    if (!/\.(png|jpe?g)$/i.test(safe)) {
+      return res.status(400).json({ error: "Só imagem (png/jpg/jpeg)" });
+    }
+
+    const dir = inventoryDir();
+    fs.mkdirSync(dir, { recursive: true });
+
+    // Otimiza no servidor: encolhe se for grande demais (o mockup roda ~1024px) e
+    // re-encoda em JPEG q82. Mantém o acervo leve — cada cliente sobe o próprio, escala bem.
+    const img = await Jimp.read(file.buffer);
+    const TARGET = 1600;
+    if (Math.max(img.width, img.height) > TARGET) img.scaleToFit({ w: TARGET, h: TARGET });
+    const optimized = await img.getBuffer("image/jpeg", { quality: 82 });
+
+    // Nome final = mesmo nome, extensão .jpg. O casamento foto↔formato IGNORA a extensão,
+    // então "X.jpg" casa com a coluna IMAGEM DO PRODUTO "X.png".
+    const stem = safe.replace(/\.[^.]+$/, "");
+    // remove qualquer arquivo do mesmo formato já existente (substitui o full-res antigo, sem duplicar)
+    for (const ex of fs.readdirSync(dir)) {
+      if (ex.replace(/\.[^.]+$/, "") === stem) fs.unlinkSync(path.join(dir, ex));
+    }
+    const outName = stem + ".jpg";
+    fs.writeFileSync(path.join(dir, outName), optimized);
+
+    return res.json({ success: true, file: outName, bytes: optimized.length });
+  } catch (error: any) {
+    console.error("upload-mockup error:", error);
+    return res.status(500).json({ error: "Failed to save mockup photo" });
+  }
+});
+
+// Status do acervo de fotos de mockup (admin): contagem, tamanho e extensões.
+router.get("/mockup-status", async (req: any, res: Response) => {
+  try {
+    let user;
+    try { user = await sdk.authenticateRequest(req); }
+    catch { return res.status(401).json({ error: "Unauthorized" }); }
+    if (!user || (user as any).role !== "admin") return res.status(403).json({ error: "Forbidden" });
+
+    const dir = inventoryDir();
+    if (!fs.existsSync(dir)) return res.json({ dir, count: 0, totalBytes: 0, byExt: {} });
+
+    const files = fs.readdirSync(dir).filter((f) => /\.(png|jpe?g|webp)$/i.test(f));
+    let totalBytes = 0;
+    const byExt: Record<string, number> = {};
+    for (const f of files) {
+      totalBytes += fs.statSync(path.join(dir, f)).size;
+      const ext = (f.split(".").pop() || "").toLowerCase();
+      byExt[ext] = (byExt[ext] || 0) + 1;
+    }
+    return res.json({ dir, count: files.length, totalBytes, totalMB: +(totalBytes / 1048576).toFixed(1), byExt });
+  } catch (error: any) {
+    return res.status(500).json({ error: "Failed to read inventory" });
   }
 });
 
