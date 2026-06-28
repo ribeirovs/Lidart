@@ -19,6 +19,10 @@ export const ENV = {
   // Geração de imagem (nano-banana / Gemini Flash Image) — mockups e edição de imagem
   geminiApiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "",
   geminiImageModel: process.env.GEMINI_IMAGE_MODEL ?? "gemini-2.5-flash-image",
+
+  // Recuperação de emergência — requer ENABLE_RECOVERY=true + RECOVERY_SECRET (≥24 chars)
+  recoverySecret: process.env.RECOVERY_SECRET ?? "",
+  enableRecovery: process.env.ENABLE_RECOVERY === "true",
 };
 
 /**

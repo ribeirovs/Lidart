@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import express, { type Express, type Request, type Response } from "express";
 import { parse as parseCookieHeader } from "cookie";
@@ -71,18 +72,35 @@ export function registerOAuthRoutes(app: Express) {
   });
 
   // ── Link de recuperação de emergência ─────────────────────────────────────────
-  // Acesse: /api/auth/recovery?secret=<JWT_SECRET>
-  // O JWT_SECRET está visível nas variáveis de ambiente do Railway.
-  // Gera uma sessão de admin sem precisar de senha. Mude sua senha depois.
+  // Requer: ENABLE_RECOVERY=true  +  RECOVERY_SECRET (mínimo 24 caracteres)
+  // Acesse: /api/auth/recovery?secret=<RECOVERY_SECRET>
+  // Desative (ou remova ENABLE_RECOVERY) assim que recuperar o acesso.
   app.get("/api/auth/recovery", async (req: Request, res: Response) => {
+    // Gating: desligado por padrão — 404 indistinguível de rota inexistente
+    if (!ENV.enableRecovery) { res.status(404).send("Not found"); return; }
+
     try {
-      const secret = getQueryParam(req, "secret");
-      if (!secret || secret !== ENV.cookieSecret) {
-        res.status(403).send("Segredo inválido.");
+      const secret = getQueryParam(req, "secret") ?? "";
+      const stored = ENV.recoverySecret;
+
+      // Segredo precisa ter ao menos 24 chars para ser aceito
+      if (stored.length < 24) {
+        console.error("[Auth] RECOVERY_SECRET muito curto ou ausente — recovery bloqueado");
+        res.status(404).send("Not found");
         return;
       }
+
+      // Comparação em tempo constante para evitar timing attacks
+      const secretBuf = Buffer.from(secret.padEnd(stored.length, "\0"));
+      const storedBuf = Buffer.from(stored);
+      const match = secretBuf.length === storedBuf.length &&
+        crypto.timingSafeEqual(secretBuf, storedBuf);
+
+      if (!match) { res.status(403).send("Segredo inválido."); return; }
+
       const user = await db.getUserByOpenId(ENV.ownerOpenId || "");
       if (!user) { res.status(404).send("Usuário não encontrado."); return; }
+
       const sessionToken = await sdk.createSessionToken(user.openId, {
         name: user.name || user.email || "Admin",
         expiresInMs: ONE_YEAR_MS,
