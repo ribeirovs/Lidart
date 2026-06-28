@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { AppHeader } from "@/components/AppHeader";
 import {
-  Plus, History, ClipboardList, UploadCloud,
+  History, ClipboardList, UploadCloud,
   Sparkles, Coins, FileCheck, FileText,
 } from "lucide-react";
-import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 
@@ -110,6 +112,34 @@ function ActionCard({
 export default function Home() {
   const { user, loading, isAuthenticated, logout } = useAuth();
 
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginErro, setLoginErro] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const entrar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginErro(null);
+    setLoginLoading(true);
+    try {
+      const r = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setLoginErro(data?.error || "Não foi possível entrar.");
+        setLoginLoading(false);
+        return;
+      }
+      window.location.href = "/";
+    } catch {
+      setLoginErro("Falha de conexão. Tente de novo.");
+      setLoginLoading(false);
+    }
+  };
+
   const { data: proposals = [] } = trpc.proposals.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
@@ -184,23 +214,16 @@ export default function Home() {
               </ul>
 
               <div className="flex gap-3 pt-2">
-                <a href={getLoginUrl()}>
+                {import.meta.env.DEV && (
                   <Button
                     size="lg"
-                    className="text-white px-8 font-medium"
-                    style={{ backgroundColor: "var(--terra)" }}
+                    variant="outline"
+                    onClick={() => (window.location.href = "/api/auth/dev-login")}
+                    className="px-8 font-medium"
                   >
-                    Começar Agora
+                    Acesso Dev
                   </Button>
-                </a>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => (window.location.href = "/api/auth/dev-login")}
-                  className="px-8 font-medium"
-                >
-                  Acesso Dev
-                </Button>
+                )}
               </div>
             </div>
 
@@ -210,22 +233,48 @@ export default function Home() {
                 style={{ background: "linear-gradient(135deg, var(--terra-pale), var(--cream-dark))" }}
               />
               <Card
-                className="relative border bg-white/70 backdrop-blur p-8 space-y-6"
+                className="relative border bg-white/70 backdrop-blur p-8"
                 style={{ borderColor: "var(--cream-dark)", borderRadius: "4px" }}
               >
-                <div className="space-y-4">
-                  <div className="h-3 rounded-full w-3/4" style={{ backgroundColor: "var(--cream-dark)" }} />
-                  <div className="h-3 rounded-full w-full"  style={{ backgroundColor: "var(--cream-dark)" }} />
-                  <div className="h-3 rounded-full w-5/6"  style={{ backgroundColor: "var(--cream-dark)" }} />
-                </div>
-                <div className="pt-4 border-t space-y-3" style={{ borderColor: "var(--cream-dark)" }}>
-                  <div className="h-2 rounded-full w-2/3" style={{ backgroundColor: "var(--terra-pale)" }} />
-                  <div className="h-2 rounded-full w-4/5" style={{ backgroundColor: "var(--terra-pale)" }} />
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <div className="h-9 rounded flex-1" style={{ backgroundColor: "var(--terra-pale)" }} />
-                  <div className="h-9 rounded flex-1" style={{ backgroundColor: "var(--cream-dark)" }} />
-                </div>
+                <h3
+                  className="text-lg font-semibold mb-6"
+                  style={{ fontFamily: "var(--font-serif)", color: "var(--ink)" }}
+                >
+                  Acesse sua conta
+                </h3>
+                <form onSubmit={entrar} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium" style={{ color: "var(--ink)" }}>E-mail</label>
+                    <Input
+                      type="email"
+                      autoComplete="username"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="voce@empresa.com.br"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium" style={{ color: "var(--ink)" }}>Senha</label>
+                    <Input
+                      type="password"
+                      autoComplete="current-password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                  {loginErro && <p className="text-sm text-destructive">{loginErro}</p>}
+                  <Button
+                    type="submit"
+                    disabled={loginLoading}
+                    className="w-full text-white font-medium"
+                    style={{ backgroundColor: "var(--terra)" }}
+                  >
+                    {loginLoading ? <Spinner className="w-4 h-4" /> : "Entrar"}
+                  </Button>
+                </form>
               </Card>
             </div>
           </div>
