@@ -1,4 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
+import type Anthropic from "@anthropic-ai/sdk";
+import { randomUUID } from "node:crypto";
+import { amplitudeAI, anthropic, currentAiSession, proposalAgent } from "./amplitude-ai";
 import { ENV } from "./env";
 
 export type Role = "system" | "user" | "assistant" | "tool" | "function";
@@ -115,10 +117,6 @@ export type ResponseFormat =
   | { type: "json_object" }
   | { type: "json_schema"; json_schema: JsonSchema };
 
-const anthropic = new Anthropic({
-  apiKey: ENV.anthropicApiKey,
-});
-
 function contentToText(content: MessageContent | MessageContent[]): string {
   const parts = Array.isArray(content) ? content : [content];
   return parts
@@ -202,48 +200,72 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   const resolvedTemperature = typeof temperature === "number" ? Math.max(0, Math.min(temperature, 1)) : undefined;
 
+  // Sessão do Agent Analytics: herda userId/sessionId de quem abriu o escopo
+  // (runWithAiSession, no middleware do tRPC). Sem escopo, a chamada vira sessão própria.
+  const aiSession = currentAiSession();
+  const session = proposalAgent.session({
+    sessionId: aiSession?.sessionId ?? `llm-${randomUUID()}`,
+    userId: aiSession?.userId,
+  });
+  const startedAt = Date.now();
+
   try {
-    console.log(`[LLM RUNTIME] Sending request to Anthropic with model: ${resolvedModel}...`);
-    const resp = await anthropic.messages.create({
-      model: resolvedModel,
-      max_tokens: resolvedMaxTokens,
-      ...(typeof resolvedTemperature === "number" ? { temperature: resolvedTemperature } : {}),
-      ...(system ? { system } : {}),
-      messages: turns.length > 0 ? turns : [{ role: "user", content: "" }],
-    });
-    console.log(`[LLM RUNTIME] Received response from Anthropic. ID: ${resp.id}, Model used: ${resp.model}`);
+    return await session.run(async s => {
+      try {
+      console.log(`[LLM RUNTIME] Sending request to Anthropic with model: ${resolvedModel}...`);
+      // O wrapper do Amplitude tipa create() como `AnthropicResponse | AsyncIterable`
+      // porque também cobre streaming. Aqui nunca passamos stream:true, então o
+      // retorno é sempre uma Message do SDK — estreitamos pro tipo real.
+      const resp = (await anthropic.messages.create({
+        model: resolvedModel,
+        max_tokens: resolvedMaxTokens,
+        ...(typeof resolvedTemperature === "number" ? { temperature: resolvedTemperature } : {}),
+        ...(system ? { system } : {}),
+        messages: turns.length > 0 ? turns : [{ role: "user", content: "" }],
+      })) as Anthropic.Message;
+      console.log(`[LLM RUNTIME] Received response from Anthropic. ID: ${resp.id}, Model used: ${resp.model}`);
 
-    let text = resp.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("");
+      let text = resp.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("");
 
-    if (wantsJson) {
-      text = text.trim();
-      const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-      if (fence) text = fence[1].trim();
-    }
+      if (wantsJson) {
+        text = text.trim();
+        const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+        if (fence) text = fence[1].trim();
+      }
 
-    return {
-      id: resp.id,
-      created: Math.floor(Date.now() / 1000),
-      model: resp.model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: "assistant",
-            content: text,
+      return {
+        id: resp.id,
+        created: Math.floor(Date.now() / 1000),
+        model: resp.model,
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: text,
+            },
+            finish_reason: resp.stop_reason ?? null,
           },
-          finish_reason: resp.stop_reason ?? null,
+        ],
+        usage: {
+          prompt_tokens: resp.usage.input_tokens,
+          completion_tokens: resp.usage.output_tokens,
+          total_tokens: resp.usage.input_tokens + resp.usage.output_tokens,
         },
-      ],
-      usage: {
-        prompt_tokens: resp.usage.input_tokens,
-        completion_tokens: resp.usage.output_tokens,
-        total_tokens: resp.usage.input_tokens + resp.usage.output_tokens,
-      },
-    };
+      };
+      } catch (err: any) {
+        // Sem isto, uma chamada que falha não gera [Agent] AI Response e o turno
+        // some das métricas de erro/latência — justamente o que você quer ver.
+        s.trackAiMessage("", resolvedModel, "anthropic", Date.now() - startedAt, {
+          isError: true,
+          errorMessage: err?.message || String(err),
+        });
+        throw err;
+      }
+    });
   } catch (err: any) {
     console.error("[LLM RUNTIME] Error in invokeLLM:", err);
     const status = err?.status ?? err?.statusCode;
@@ -255,6 +277,10 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       throw new Error(`LLM invoke failed: timeout – ${baseMsg}`);
     }
     throw new Error(`LLM invoke failed: ${baseMsg}`);
+  } finally {
+    // Express é processo longo: session.run() só auto-flusha em serverless.
+    // Sem este flush os eventos ficam na fila em memória e somem num restart.
+    await amplitudeAI.flush();
   }
 }
 

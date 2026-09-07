@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import * as amplitude from '@amplitude/unified';
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -111,6 +112,10 @@ function ActionCard({
 /* ─── Page ────────────────────────────────────────────────── */
 export default function Home() {
   const { user, loading, isAuthenticated, logout } = useAuth();
+
+  useEffect(() => {
+    amplitude.track('Viewed Home Page', { prompt_version: 'BA400.4' }); // helps improve this setup flow — safe to remove once you've verified the event lands
+  }, []);
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");

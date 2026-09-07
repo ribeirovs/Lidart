@@ -16,6 +16,9 @@ export const ENV = {
   anthropicModelSmart: process.env.ANTHROPIC_MODEL_SMART ?? "claude-sonnet-4-5",
   anthropicModelFast: process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5",
 
+  // Amplitude Agent Analytics — custo/tokens/latência das chamadas de IA
+  amplitudeAiApiKey: process.env.AMPLITUDE_AI_API_KEY ?? "",
+
   // Geração de imagem (nano-banana / Gemini Flash Image) — mockups e edição de imagem
   geminiApiKey: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "",
   geminiImageModel: process.env.GEMINI_IMAGE_MODEL ?? "gemini-2.5-flash-image",

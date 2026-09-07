@@ -10,6 +10,8 @@
  * Fala com a API por HTTP direto (sem o @anthropic-ai/sdk antigo do app). NÃO toca llm.ts.
  * Quem chama deve AINDA rodar o verificador na narrativa (gateNarrativeExport).
  */
+import { randomUUID } from "node:crypto";
+import { amplitudeAI, currentAiSession, proposalAgent } from "./_core/amplitude-ai";
 import { ENV } from "./_core/env";
 import { getDb } from "./db";
 import { briefings } from "../drizzle/schema";
@@ -97,17 +99,54 @@ Lembre: responda SOMENTE com o JSON. Comece com { e termine com }.`;
 async function callMessages(body: any): Promise<any> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 300000); // 5 min
+  // Hop HTTP cru — nenhum wrapper de provider tem o que interceptar aqui, então o
+  // turno vai à mão pro Agent Analytics com o usage que a própria API devolve.
+  const aiSession = currentAiSession();
+  const session = proposalAgent.session({
+    sessionId: aiSession?.sessionId ?? `deck-${randomUUID()}`,
+    userId: aiSession?.userId,
+  });
+  const startedAt = Date.now();
   try {
-    const r = await fetch(`${BASE}/v1/messages`, {
-      method: "POST",
-      headers: { "x-api-key": ENV.anthropicApiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal: ctrl.signal,
+    return await session.run(async s => {
+      // Linha curta e legível: é ela que vira o título da sessão no dashboard.
+      // O prompt inteiro (16k de briefing) como corpo quebraria a leitura lá.
+      s.trackUserMessage("Escrever o conteúdo estratégico do deck premium a partir do briefing e do plano validado");
+      try {
+        const r = await fetch(`${BASE}/v1/messages`, {
+          method: "POST",
+          headers: { "x-api-key": ENV.anthropicApiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify(body),
+          signal: ctrl.signal,
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(`Claude API ${r.status}: ${JSON.stringify(j).slice(0, 400)}`);
+        const text = (j.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("");
+        s.trackAiMessage(text, j.model || body.model, "anthropic", Date.now() - startedAt, {
+          // input_tokens cru do Anthropic NÃO inclui cache — sem somar, o custo sai subestimado.
+          inputTokens:
+            (j.usage?.input_tokens ?? 0) +
+            (j.usage?.cache_read_input_tokens ?? 0) +
+            (j.usage?.cache_creation_input_tokens ?? 0),
+          outputTokens: j.usage?.output_tokens ?? null,
+          cacheReadTokens: j.usage?.cache_read_input_tokens ?? null,
+          cacheCreationTokens: j.usage?.cache_creation_input_tokens ?? null,
+          finishReason: j.stop_reason ?? null,
+          maxOutputTokens: body.max_tokens ?? null,
+        });
+        return j;
+      } catch (err: any) {
+        s.trackAiMessage("", body.model, "anthropic", Date.now() - startedAt, {
+          isError: true,
+          errorMessage: err?.message || String(err),
+        });
+        throw err;
+      }
     });
-    const j = await r.json();
-    if (!r.ok) throw new Error(`Claude API ${r.status}: ${JSON.stringify(j).slice(0, 400)}`);
-    return j;
-  } finally { clearTimeout(timer); }
+  } finally {
+    clearTimeout(timer);
+    await amplitudeAI.flush();
+  }
 }
 
 /** Extrai o primeiro objeto JSON balanceado do texto (tolerante a cercas/markdown). */
